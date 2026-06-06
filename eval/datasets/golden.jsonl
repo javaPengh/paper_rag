@@ -1,0 +1,75 @@
+﻿# 本文件用于维护第一版人工 golden dataset。
+# 编码：UTF-8。每个非注释行表示一个 eval case。
+#
+# 重要说明：
+# - 注释中的 JSON 是填写模板；非注释 JSON 行是正式候选 case。
+# - `evidence` 数组统一表达检索和 citation 应命中的文档、页码和原文锚点词。
+# - 真正的 MVP 评测集，应该分维度覆盖，而不是把所有方向混成一类。
+#
+# 建议按下面三个维度设计题目：
+#
+# 维度 A：可回答性
+# A1. 可回答问题
+# A2. 不可回答问题
+#
+# 维度 B：问题任务类型
+# B1. 事实型问题
+# B2. 定义或术语型问题
+# B3. 方法或流程型问题
+# B4. 结果或指标型问题
+# B5. 单篇论文内综合型问题
+# B6. 跨论文对比型问题（前提是语料支持）
+# B7. citation / 页码可验证问题
+# B8. 前提谬误或陷阱型问题
+#
+# 维度 C：检索表达难度
+# C1. 与原文词面接近的问题
+# C2. 低词面重合或同义改写问题
+#
+# 设计一个 case 时，建议至少同时考虑：
+# - 它属于 A1 还是 A2
+# - 它主要属于哪一种 B 类任务
+# - 它是 C1 还是 C2
+#
+# 填写 `notes` 时，可以顺手写明题型，例如：
+# "[A1 可回答][B1 事实型][C2 改写表达] 用于验证检索和答案关键词命中。"
+#
+# 新增 case 时，复制下方某一条模板，去掉开头的 "# "，再填写字段值。
+# `doc_key` 填文档短键，短键映射见 `eval/datasets/golden.documents.json`。
+# 文档短键最终解析到 `source_path`，例如 `eval/papers/think in space.pdf`。
+#
+# 可回答问题模板：
+# {"id":"golden_001","question":"","answerable":true,"evidence":[{"doc_key":"paper_a","page_start":1,"page_end":1,"terms":[""]}],"answer_terms":[""],"reference_answer":"","notes":"[A1 可回答][B1 事实型][C1 词面接近]"}
+#
+# 不可回答问题模板：
+# {"id":"golden_una_001","question":"","answerable":false,"evidence":[],"answer_terms":["不足以回答"],"reference_answer":"","notes":"[A2 不可回答][B1 事实型][C1 词面接近]"}
+#
+# 跨文档或多证据问题模板：
+# {"id":"golden_cross_001","question":"","answerable":true,"evidence":[{"doc_key":"paper_a","page_start":1,"page_end":1,"terms":[""]},{"doc_key":"paper_b","page_start":1,"page_end":1,"terms":[""]}],"answer_terms":[""],"reference_answer":"","notes":"[A1 可回答][B6 跨论文对比][C1 词面接近]"}
+#
+# [A1][B1][C1] 事实型问题，词面接近：
+{"id":"golden_001","question":"论文中提出的 VSI-Bench 基准测试集包含了多少个问答对？其视频数据主要是由哪几个现有的公开数据集汇编而成的？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":3,"page_end":3,"terms":["VSI-Bench","5,000 question-answer pairs","ScanNet","ScanNet++","ARKitScenes"]}],"answer_terms":["问答对","室内","ScanNet","ScanNet++","ARKitScenes"],"reference_answer":"VSI-Bench 包含了超过 5,000 个问答对 。该基准测试集的视频数据来源于三个公开的室内 3D 场景重建数据集：ScanNet、ScanNet++ 和 ARKitScenes","notes":""}
+# [A1][B4][C1] 结果或指标型问题，词面接近：
+{"id":"golden_002","question":"论文通过实验得出，主流的语言提示技术（如零样本思维链 Zero-Shot CoT、思维树 ToT 等）能否提升多模态大语言模型（MLLMs）在 VSI-Bench 上的视觉空间推理表现？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":6,"page_end":7,"terms":["CoT","Zero-Shot Chain-of-Thought","Self-Consistency w/ CoT","Tree-of-Thoughts (ToT)"]}],"answer_terms":["不能","下降"],"reference_answer":"不能。实验结果出人意料地显示，所有的三种主流语言推理技术不仅没有提升表现，反而导致了模型在 VSI-Bench 上的性能下降 。论文由此得出结论，尽管语言提示技术在语言推理和一般视觉任务中有效，但它们对于空间推理任务实际上是有害的 。","notes":""}
+# [A1][B2][C1] 定义或术语型问题，词面接近：
+{"id":"golden_003","question":"在本文的视觉-空间智能分类体系中，自我中心到异我中心转换具体包含哪些子能力？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":2,"page_end":3,"terms":["Egocentric-allocentric Transformation","Visuospatial Working Memory","Perspective Visualization"]}],"answer_terms":["视觉空间工作记忆","Visuospatial Working Memory","视角可视化","Perspective Visualization"],"reference_answer":"该能力包含视觉空间工作记忆（Visuospatial Working Memory）和视角可视化（Perspective Visualization）两个子能力。","notes":""}
+# [A1][B4][C2] 结果或指标型问题，低词面重合或同义改写：
+{"id":"golden_004","question":"顶级开源多模态大模型在 VSI-Bench 上的空间理解表现是否已经完全追平或超越了现有的闭源商业大模型？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":5,"page_end":5,"terms":["LLaVA-Video-72B","LLaVA-OneVision-72B","trailing the leading Gemini-1.5 Pro by only 4% to 5%"]}],"answer_terms":["没有","尚未","4%","5%"],"reference_answer":"尚未完全追平。尽管顶级开源模型（如 LLaVA-Video-72B 和 LLaVA-OneVision-72B）展现出极强的竞争力，但它们与领先的闭源模型（Gemini-1.5 Pro）之间仍存在 4% 到 5% 的性能差距。","notes":""}
+# [A2][B3][C1] 方法或流程型问题，词面接近：
+{"id":"golden_005","question":"在数据收集与统一阶段，对于 ScanNet 数据集的视频，论文具体使用了哪种视频插帧算法来将其转换为 24 FPS 的连续视频？","answerable":false,"evidence":[{"doc_key":"think_in_space","page_start":13,"page_end":13,"terms":["ScanNet's individual frames into continuous videos at 24 FPS"]}],"answer_terms":["未提及","没有说明"],"reference_answer":"论文并未提及使用任何特定的视频插帧算法，文献中仅说明了将 ScanNet 的独立帧转换（convert）为 24 FPS 的连续视频。","notes":"文中未提及具体算法，属于不可回答问题。"}
+# [A1][B3][C2] 方法或流程型问题，低词面重合或同义改写：
+{"id":"golden_006","question":"为了让多模态大模型输出其内部的“认知地图”，研究者是如何设计提示词以规范模型坐标输出格式的？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":15,"page_end":16,"terms":["10x10 grid","JSON format","dictionary"]}],"answer_terms":["10x10","网格","字典","JSON"],"reference_answer":"研究者在提示词中要求模型将整个场景假设为一个 10x10 的网格，并以字典内列表的形式提供每个目标对象的中心位置估计，同时严格遵循特定的 JSON 格式：{\"category name\": [(x_1, y_1), ...]}。","notes":""}
+# [A1][B5][C2] 单篇论文内综合型问题，低词面重合或同义改写：
+{"id":"golden_007","question":"为什么主流的语言提示技术（如 CoT）无法提升模型在基准测试上的表现，而让模型显式生成“认知地图”却能改善空间距离推理？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":6,"page_end":8,"terms":["spatial reasoning is the primary bottleneck","harmful for spatial reasoning","local world models","generating and using cognitive maps"]}],"answer_terms":["空间推理","局部世界模型","认知地图"],"reference_answer":"综合全文来看，主流语言提示技术（如 CoT）主要增强的是语言逻辑推理，但 VSI-Bench 中超过 70% 的错误源于空间推理能力不足。而生成认知地图强迫模型建立显式的局部世界模型，这直接弥补了模型在理解物体间距离等局部空间感知上的短板，从而有效提升了相对距离等任务的准确率。","notes":"需要跨页（Section 5 和 Section 6）综合归纳。"}
+# [A1][B7][C1] citation / 页码可验证问题，词面接近：
+{"id":"golden_008","question":"论文中展示了 MLLMs 在 VSI-Bench 中不同任务类型的错误分类占比（Error Breakdown by Task），该图表具体位于论文的哪一页？图表编号是什么？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":6,"page_end":6,"terms":["Error Breakdown by Task","Figure 7"]}],"answer_terms":["第6页","图7","Figure 7"],"reference_answer":"该图表位于论文的第 6 页，编号为 Figure 7。","notes":""}
+# [A1][B8][C2] 前提谬误或陷阱型问题，低词面重合或同义改写：
+{"id":"golden_009","question":"作者为什么要将ScanNet++的单帧画面合成为30fps的视频？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":13,"page_end":13,"terms":["ScanNet's individual frames","24 FPS","subsampling ScanNet++","30 FPS"]}],"answer_terms":["前提有误","ScanNet","24 FPS","降采样","subsampling"],"reference_answer":"这个问题的前提有误。根据论文内容，研究人员是将 ScanNet 的独立单帧转换为了 24 FPS 的连续视频 [cite: 1]；而对于 ScanNet++（以及 ARKitScenes），原本就是视频，研究人员是对其进行了降采样（subsampling）至 30 FPS 的处理 [cite: 1]。","notes":"陷阱题。测试系统能否敏锐地识别出实体（ScanNet与ScanNet++）以及参数（24fps与30fps）的张冠李戴，并给出纠正性回答。归类为 A1 是因为通过检索原文完全可以纠正这个错误。"}
+# [A1][B3][C2] 方法或流程型问题，低词面重合或同义改写：
+{"id":"golden_010","question":"构建VSI-Bench，作者具体做了哪些工作？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":3,"page_end":4,"terms":["Benchmark Construction","Data Collection and Unification","Question-Answer Generation","Human-in-the-loop Quality Review"]}],"answer_terms":["数据收集与统一","问答对生成","质量审查"],"reference_answer":"根据论文，作者在构建 VSI-Bench 时建立了一个复杂的数据管道，主要包含三个核心工作步骤：1. 数据收集与统一（Data Collection and Unification）：汇总了 ScanNet、ScanNet++ 和 ARKitScenes 三个3D室内场景数据集，并将不同格式的标注解析为包含类别、边界框、视频规格等的统一元信息格式。2. 问答对生成（Question-Answer Generation）：利用元信息和精心设计的问题模板自动生成大部分问答对，而“路线规划（Route Plan）”任务则通过人工进行标注。3. 人类在环质量审查（Human-in-the-loop Quality Review）：引入人工评估员进行多轮迭代审查，标记并修复模糊或错误的问答对，同时追溯并修正源数据集中的错误标注，直至满足质量标准。","notes":"综合概括题，要求 RAG 系统准确提取 Section 3.2 (Benchmark Construction) 中的三个核心子段落并进行结构化总结。"}
+# [A1][B8][C2] 前提谬误或陷阱型问题，低词面重合或同义改写：
+{"id":"golden_011","question":"论文在实验中是如何调整参数或设计提示词的，从而使得思维链（Chain-of-Thought）等语言推理技术大幅提升了模型在“房间大小（Room Size）”估计任务上的准确率？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":7,"page_end":7,"terms":["room size","8% to 21% decrease","unreliable","downright harmful"]}],"answer_terms":["下降","没有提升","有害","decrease"],"reference_answer":"这个问题的前提是错误的 [cite: 1]。根据论文 Section 5.2 的实验结果，以零样本思维链（Zero-Shot CoT）为代表的语言提示技术不仅没有提升表现，反而导致模型在“房间大小（Room Size）”和“物体大小（Object Size）”估计任务上的准确率大幅下降了 8% 到 21% [cite: 1]。作者在文中明确指出，在这些空间测量任务中鼓励模型进行更多思考（thinking more）不仅不可靠，而且实际上是有害的（downright harmful） [cite: 1]。","notes":"陷阱题（维度 B8）。提问利用了“CoT通常能提升大模型推理表现”这一普遍直觉作为错误前提。优秀的 RAG 系统应该能够从原文检索到该任务性能下降（decrease）的客观数据，并严正反驳用户的问题前提，而不是顺着用户去编造“提示词调优细节”。"}
+# [A2][B4][C2] 结果或指标型问题（细节缺失），低词面重合或同义改写：
+{"id":"golden_012","question":"根据论文对最佳模型 Gemini-1.5 Pro 的错误分析，在“视觉感知错误（Visual Perception Error）”这一类错误中，模型最容易误认或漏认的 Top-3 物体类别分别是什么？","answerable":false,"evidence":[{"doc_key":"think_in_space","page_start":6,"page_end":6,"terms":["Visual perception error","misclassified object categories","Error Analysis"]}],"answer_terms":["未提及","没有统计","没有列出","具体排名"],"reference_answer":"论文并未提及这些具体信息。虽然论文在 Section 5.1 的错误分析中明确定义了“视觉感知错误（Visual Perception Error）”源于未能识别物体或错误分类了物体类别，并在附录的 Case Study 中展示了个别案例（例如将木制梳妆台误认为桌子），但全文并没有系统性地统计或列出最常被误认的 Top-3 物体类别。","notes":"极其容易诱发幻觉的 A2 题目。提问非常符合论文阅读的自然逻辑。劣质的 RAG 系统可能会将附录中的个别案例（梳妆台、桌子）生搬硬套凑成答案，或者调用模型自身的先验常识瞎编 3 个难以识别的物体。优秀的系统应该明确告知用户：文献虽然定义了该错误类型，但缺乏具体的类别统计排名。"}
+# [A1][B6][C2] 跨论文对比型问题，低词面重合或同义改写：
+{"id":"golden_cross_001","question":"VSI-Bench的问答对是否覆盖了空间智能中的基础感知任务的主要维度？","answerable":true,"evidence":[{"doc_key":"think_in_space","page_start":3,"page_end":4,"terms":["object count","measurement estimation"]},{"doc_key":"SIBE-LM","page_start":6,"page_end":7,"terms":["basic perception","Attributes","States","shape, color, size"]}],"answer_terms":["configurational tasks","物体计数","属性","状态","颜色","形状"],"reference_answer":"VSI-Bench 明确提出了测量物体尺寸、房间大小和绝对距离的“测量估计（Measurement estimation）”或连续数值回答任务。根据 SIBE-LM 综述的宏观分类体系，视觉空间智能被划分为三个核心层级：基础感知（basic perception）、空间理解（spatial understanding）和空间规划（spatial planning）。综述中明确指出，基础感知包括感知属性和状态，属性主要有颜色、形状、尺寸、数量，状态常见的有物体的姿态、朝向、开合, 而在vsibench中只覆盖了尺寸和数量维度的问题。","notes":"跨文档体系对齐题（维度 A1/B6/C2）。测试 RAG 系统能否将 VSI-Bench 中的特定任务分类，准确映射并对应到 SIBE-LM 综述的第一页摘要中提出的宏观能力分级 Taxonomy 框架中。"}

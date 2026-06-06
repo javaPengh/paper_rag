@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Paper RAG Inspector</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <h1>Paper RAG Inspector</h1>
+        <p id="service-status">Checking service...</p>
+      </div>
+      <form id="workspace-form" class="workspace-form">
+        <label>
+          <span>Index dir</span>
+          <input
+            id="index-dir"
+            name="indexDir"
+            type="text"
+            placeholder=".paper_rag/manual_index"
+            autocomplete="off"
+          />
+        </label>
+        <label>
+          <span>Tenant</span>
+          <input id="tenant-id" name="tenantId" type="text" value="default" autocomplete="off" />
+        </label>
+        <button type="submit">Refresh</button>
+      </form>
+    </header>
+
+    <main class="workspace">
+      <section class="panel sidebar-panel" aria-labelledby="status-heading">
+        <div class="panel-heading">
+          <h2 id="status-heading">Index</h2>
+          <span id="index-badge" class="badge">unknown</span>
+        </div>
+        <dl id="status-grid" class="status-grid"></dl>
+
+        <div class="panel-heading compact">
+          <h2>Upload</h2>
+          <label class="inline-control">
+            <input id="upload-local-mode" type="checkbox" checked />
+            <span>Local</span>
+          </label>
+        </div>
+        <form id="upload-form" class="upload-form">
+          <label>
+            <span>PDF</span>
+            <input id="upload-file" name="file" type="file" accept="application/pdf,.pdf" />
+          </label>
+          <div class="upload-controls">
+            <label>
+              <span>Chunk size</span>
+              <input id="upload-chunk-size" type="number" min="1" value="800" />
+            </label>
+            <label>
+              <span>Overlap</span>
+              <input id="upload-chunk-overlap" type="number" min="0" value="120" />
+            </label>
+          </div>
+          <button id="upload-button" type="submit">Upload & index</button>
+        </form>
+        <div id="upload-output" class="upload-output"></div>
+
+        <div class="panel-heading compact">
+          <h2>Documents</h2>
+          <span id="document-count" class="badge">0</span>
+        </div>
+        <div id="document-list" class="document-list" aria-live="polite"></div>
+      </section>
+
+      <section class="panel chunk-panel" aria-labelledby="chunks-heading">
+        <div class="panel-heading">
+          <div>
+            <h2 id="chunks-heading">Chunks</h2>
+            <p id="selected-document">Select a document</p>
+          </div>
+          <button id="reload-chunks" type="button" disabled>Reload</button>
+        </div>
+        <div id="chunk-list" class="chunk-list" aria-live="polite"></div>
+      </section>
+
+      <section class="panel qa-panel" aria-labelledby="ask-heading">
+        <div class="panel-heading">
+          <h2 id="ask-heading">Ask</h2>
+          <label class="inline-control">
+            <input id="local-mode" type="checkbox" checked />
+            <span>Local</span>
+          </label>
+        </div>
+        <form id="ask-form" class="ask-form">
+          <textarea
+            id="question"
+            name="question"
+            rows="5"
+            placeholder="What does this knowledge base say?"
+          ></textarea>
+          <div class="ask-controls">
+            <label>
+              <span>Top K</span>
+              <input id="top-k" type="number" min="1" value="3" />
+            </label>
+            <button type="submit">Ask</button>
+          </div>
+        </form>
+
+        <div id="answer-output" class="answer-output"></div>
+        <div id="citation-list" class="citation-list"></div>
+        <div id="evidence-list" class="evidence-list"></div>
+      </section>
+    </main>
+
+    <template id="empty-template">
+      <div class="empty-state">No data</div>
+    </template>
+
+    <script src="/static/inspector.js" defer></script>
+  </body>
+</html>

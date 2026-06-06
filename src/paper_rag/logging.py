@@ -1,0 +1,19 @@
+"""Logging setup for CLI commands."""
+
+from __future__ import annotations
+
+import logging
+
+
+def configure_logging(level: str = "INFO") -> None:
+    """Configure root logging once for the CLI process."""
+    logging.basicConfig(
+        level=getattr(logging, level.upper(), logging.INFO),
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+    )
+    logging.getLogger("chromadb.telemetry.product.posthog").setLevel(logging.CRITICAL)
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Return a module-scoped logger."""
+    return logging.getLogger(name)

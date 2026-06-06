@@ -1,0 +1,10 @@
+{
+  "think_in_space": {
+    "source_path": "eval/papers/think in space.pdf",
+    "notes": "大模型如何思考空间"
+  },
+  "SIBE-LM": {
+    "source_path": "eval/papers/SIBE-LM.pdf",
+    "notes": "视觉空间智能综述"
+  }
+}

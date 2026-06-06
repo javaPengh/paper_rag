@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://paper-rag.local/schemas/eval_case.schema.json",
+  "title": "Paper RAG Eval Case",
+  "description": "用于本地 PDF RAG 确定性评测的一条 JSONL eval case。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "question",
+    "answerable",
+    "evidence",
+    "answer_terms",
+    "notes"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+      "description": "单个数据集内稳定唯一的 case id。"
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "description": "提交给 RAG 系统的自然语言问题。"
+    },
+    "answerable": {
+      "type": "boolean",
+      "description": "本地 PDF 语料是否包含足够证据回答该问题。"
+    },
+    "evidence": {
+      "type": "array",
+      "description": "检索和 citation 应命中的证据组；完全无关的不可回答题可以为空。",
+      "items": {
+        "$ref": "#/$defs/evidenceGroup"
+      }
+    },
+    "answer_terms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "期望出现在最终答案中的关键词或短语；不可回答问题可填写拒答标记。"
+    },
+    "reference_answer": {
+      "type": "string",
+      "description": "可选的人工参考答案，供后续 answer quality 评测或人工复核使用。"
+    },
+    "notes": {
+      "type": "string",
+      "description": "人工审核备注、假设或注意事项。"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "answerable": {
+            "const": true
+          }
+        },
+        "required": [
+          "answerable"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidence": {
+            "minItems": 1
+          },
+          "answer_terms": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "answerable": {
+            "const": false
+          }
+        },
+        "required": [
+          "answerable"
+        ]
+      },
+      "then": {
+        "properties": {
+          "answer_terms": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "evidenceGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "doc_key",
+        "page_start",
+        "page_end",
+        "terms"
+      ],
+      "properties": {
+        "doc_key": {
+          "type": "string",
+          "minLength": 1,
+          "description": "评测集文档短键，对应 golden.documents.json 中的 key。"
+        },
+        "page_start": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "该证据组的起始页，闭区间。"
+        },
+        "page_end": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "该证据组的结束页，闭区间。"
+        },
+        "terms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "description": "该证据组中期望出现在检索文本里的关键词或短语。"
+        }
+      }
+    }
+  }
+}
