@@ -1,4 +1,4 @@
-"""Directory-to-index pipeline."""
+"""从目录到索引的流水线。"""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def build_index_from_directory(
     batch_size: int = 64,
     recursive: bool = True,
 ) -> IndexBuildResult:
-    """Parse changed PDFs, embed their chunks, and persist them in the local index."""
+    """解析变更的 PDF，生成 chunk embedding，并把它们持久化到本地索引。"""
     local_index = LocalPaperIndex(index_dir)
     pdf_paths, skipped_files = scan_source_directory(source_dir, recursive=recursive)
 
@@ -162,12 +162,14 @@ def _current_version(
     local_index: LocalPaperIndex,
     document: Document,
 ) -> DocumentVersion | None:
+    """当文档已经被索引时，加载它的当前生效版本。"""
     if document.current_version_id is None:
         return None
     return local_index.store.get_version(document.current_version_id)
 
 
 def _stamp_chunk_tenant(chunks: list[Chunk], tenant_id: str) -> list[Chunk]:
+    """在写入向量存储前，把租户元数据复制到 chunk 中。"""
     stamped: list[Chunk] = []
     for chunk in chunks:
         metadata = dict(chunk.metadata)
@@ -182,6 +184,7 @@ def _embed_chunks(
     *,
     batch_size: int,
 ) -> list[list[float]]:
+    """按固定批次生成 chunk embedding，以保持提供方调用和内存使用可预测。"""
     embeddings: list[list[float]] = []
     for start in range(0, len(chunks), batch_size):
         batch = chunks[start : start + batch_size]
@@ -196,6 +199,7 @@ def _write_status(
     tenant_id: str,
     errors: list[ParseIssue],
 ) -> IndexStatus:
+    """在索引运行结束后持久化一份租户状态快照。"""
     documents = local_index.store.list_documents(tenant_id=tenant_id)
     chunk_count = local_index.store.count_chunks(tenant_id=tenant_id)
     now = utc_now()

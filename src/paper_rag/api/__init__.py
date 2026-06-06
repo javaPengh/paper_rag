@@ -1,4 +1,4 @@
-"""FastAPI boundary for the local Paper RAG inspector."""
+"""本地 Paper RAG 检查器的 FastAPI 边界。"""
 
 from paper_rag.api.app import create_app
 

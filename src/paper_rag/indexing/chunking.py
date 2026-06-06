@@ -1,27 +1,38 @@
-"""Token-aware chunking for parsed PDF pages."""
+"""面向 token 的 PDF 页面分块。"""
 
 from __future__ import annotations
 
 import hashlib
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TypeAlias
 
 from paper_rag.schemas import Chunk, Page
 
+# 当可用 tiktoken 时，token 是整数；否则在回退分词器中它是一个单词字符串。
 Token: TypeAlias = int | str
 
 
 @dataclass(frozen=True)
 class ChunkingConfig:
-    """Settings for token-window chunking."""
+    """token 窗口分块的配置。"""
 
-    chunk_size: int = 800
-    chunk_overlap: int = 120
-    encoding_name: str = "cl100k_base"
+    chunk_size: int = field(
+        default=800,
+        metadata={"description": "Maximum tokenizer units allowed in one chunk."},
+    )
+    chunk_overlap: int = field(
+        default=120,
+        metadata={"description": "Tokenizer units repeated between adjacent chunks."},
+    )
+    encoding_name: str = field(
+        default="cl100k_base",
+        metadata={"description": "tiktoken encoding used for model-aware chunk boundaries."},
+    )
 
     def __post_init__(self) -> None:
+        """拒绝会产生空切片或无法前进的分块窗口。"""
         if self.chunk_size <= 0:
             raise ValueError("chunk_size must be greater than 0")
         if self.chunk_overlap < 0:
@@ -31,9 +42,10 @@ class ChunkingConfig:
 
 
 class Tokenizer:
-    """Small wrapper around tiktoken with a deterministic fallback for tests."""
+    """对 tiktoken 的轻量封装，并为测试提供确定性的回退实现。"""
 
     def __init__(self, encoding_name: str) -> None:
+        """加载指定分词器，同时让离线测试对依赖更宽容。"""
         self._encoding = None
         try:
             import tiktoken  # type: ignore[import-not-found]
@@ -46,11 +58,13 @@ class Tokenizer:
             self._encoding = None
 
     def encode(self, text: str) -> list[Token]:
+        """把文本转换成 tokenizer 单元，用于分块窗口计算。"""
         if self._encoding is not None:
             return list(self._encoding.encode(text))
         return re.findall(r"\S+", text)
 
     def decode(self, tokens: Sequence[Token]) -> str:
+        """把 tokenizer 单元转换回分块文本，用于存储和引用。"""
         if self._encoding is not None:
             return self._encoding.decode([int(token) for token in tokens])
         return " ".join(str(token) for token in tokens)
@@ -62,7 +76,7 @@ def chunk_pages(
     config: ChunkingConfig | None = None,
     tokenizer: Tokenizer | None = None,
 ) -> list[Chunk]:
-    """Split parsed pages into token-limited chunks while preserving page provenance."""
+    """在保留页面来源信息的同时，把解析后的页面拆成 token 限制的块。"""
     if not pages:
         return []
 
@@ -126,7 +140,7 @@ def make_chunk_id(
     chunk_index: int,
     text: str,
 ) -> str:
-    """Create a stable chunk ID from provenance and text content."""
+    """根据来源信息和文本内容创建稳定的 chunk ID。"""
     text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
     material = (
         f"{document_id}:{document_version_id}:"

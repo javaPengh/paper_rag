@@ -1,4 +1,4 @@
-"""PDF discovery and parsing."""
+"""PDF 发现与解析。"""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ def scan_source_directory(
     *,
     recursive: bool = True,
 ) -> tuple[list[Path], list[SkippedFile]]:
-    """Return PDF files under a directory and record skipped non-PDF files."""
+    """返回目录下的 PDF 文件，并记录被跳过的非 PDF 文件。"""
     source_dir = Path(directory)
     if not source_dir.exists():
         raise DocumentParseError(f"Source directory does not exist: {source_dir}")
@@ -47,7 +47,7 @@ def scan_source_directory(
 
 
 def parse_pdf_directory(directory: Path, *, recursive: bool = True) -> DirectoryParseResult:
-    """Parse every PDF in a directory without aborting on individual file failures."""
+    """解析目录中的每个 PDF，但不会因为单个文件失败而中止。"""
     pdf_paths, skipped_files = scan_source_directory(directory, recursive=recursive)
     result = DirectoryParseResult(skipped_files=skipped_files)
 
@@ -76,7 +76,7 @@ def parse_pdf(
     source_uri: str | None = None,
     content_hash: str | None = None,
 ) -> ParsedPdf:
-    """Parse one PDF into document metadata and non-empty page text."""
+    """把一个 PDF 解析为文档元数据和非空页面文本。"""
     pdf_path = Path(path)
     if not pdf_path.exists():
         raise DocumentParseError(f"PDF file does not exist: {pdf_path}")
@@ -170,14 +170,14 @@ def parse_pdf(
 
 
 def normalize_page_text(text: str) -> str:
-    """Normalize PDF text extraction output without destroying paragraph boundaries."""
+    """规范化 PDF 文本提取结果，同时不破坏段落边界。"""
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
     lines = [line.rstrip() for line in normalized.split("\n")]
     return "\n".join(lines).strip()
 
 
 def hash_page_texts(page_texts: Iterable[tuple[int, str]]) -> str:
-    """Compute a SHA-256 hash for parsed, normalized PDF page text."""
+    """为解析后并规范化的 PDF 页面文本计算 SHA-256 哈希。"""
     digest = hashlib.sha256()
     for page_number, text in page_texts:
         digest.update(f"\f{page_number}\n{text.strip()}".encode())
@@ -185,7 +185,7 @@ def hash_page_texts(page_texts: Iterable[tuple[int, str]]) -> str:
 
 
 def hash_file(path: Path, *, chunk_size: int = 1024 * 1024) -> str:
-    """Compute a SHA-256 hash for a source file."""
+    """为源文件计算 SHA-256 哈希。"""
     digest = hashlib.sha256()
     with Path(path).open("rb") as file:
         for chunk in iter(lambda: file.read(chunk_size), b""):
@@ -194,17 +194,18 @@ def hash_file(path: Path, *, chunk_size: int = 1024 * 1024) -> str:
 
 
 def new_document_id() -> str:
-    """Create a stable internal document ID that is not derived from local paths."""
+    """创建不依赖本地路径的稳定内部文档 ID。"""
     return uuid4().hex[:24]
 
 
 def make_document_version_id(document_id: str, content_hash: str) -> str:
-    """Create a stable content-version ID for one logical document."""
+    """为一个逻辑文档创建稳定的内容版本 ID。"""
     material = f"{document_id}:{content_hash}"
     return hashlib.sha256(material.encode("utf-8")).hexdigest()[:24]
 
 
 def _clean_optional_text(value: object) -> str | None:
+    """规范化可选的 PDF 元数据字段，并将空白字符串视为缺失。"""
     if value is None:
         return None
     text = str(value).strip()
@@ -212,6 +213,7 @@ def _clean_optional_text(value: object) -> str | None:
 
 
 def _load_pymupdf():
+    """延迟导入 PyMuPDF，使配置错误能指向预期的项目安装方式。"""
     try:
         import fitz  # type: ignore[import-not-found]
     except ModuleNotFoundError as exc:
@@ -223,7 +225,7 @@ def _load_pymupdf():
 
 
 def iter_pages_by_document(pages: Iterable[Page]) -> dict[str, list[Page]]:
-    """Group pages by document ID while preserving page order."""
+    """按文档 ID 分组页面，同时保留页面顺序。"""
     grouped: dict[str, list[Page]] = {}
     for page in sorted(pages, key=lambda item: (item.document_id, item.page_number)):
         grouped.setdefault(page.document_id, []).append(page)

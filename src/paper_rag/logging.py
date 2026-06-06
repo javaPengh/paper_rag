@@ -1,4 +1,4 @@
-"""Logging setup for CLI commands."""
+"""CLI 命令使用的日志配置。"""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import logging
 
 
 def configure_logging(level: str = "INFO") -> None:
-    """Configure root logging once for the CLI process."""
+    """为 CLI 进程一次性配置根日志。"""
     logging.basicConfig(
         level=getattr(logging, level.upper(), logging.INFO),
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
@@ -15,5 +15,5 @@ def configure_logging(level: str = "INFO") -> None:
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Return a module-scoped logger."""
+    """返回模块级日志记录器。"""
     return logging.getLogger(name)

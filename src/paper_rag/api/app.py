@@ -1,4 +1,4 @@
-"""FastAPI application for the local Paper RAG Web Inspector."""
+"""本地 Paper RAG Web Inspector 的 FastAPI 应用。"""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ from paper_rag.storage import LocalUploadStorage, StoredUpload
 
 
 def create_app() -> FastAPI:
-    """Create the FastAPI app used by the local Web Inspector."""
+    """创建本地 Web Inspector 使用的 FastAPI 应用。"""
     app = FastAPI(
         title="Paper RAG Inspector",
         version=__version__,
@@ -57,10 +57,12 @@ def create_app() -> FastAPI:
 
     @app.get("/", include_in_schema=False)
     def index_page() -> FileResponse:
+        """提供给本地浏览器验收的静态 Inspector 外壳。"""
         return FileResponse(static_dir / "index.html")
 
     @app.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
+        """为 Inspector 界面和冒烟测试返回一个轻量就绪信号。"""
         return HealthResponse(status="ok", version=__version__)
 
     @app.get("/api/index/status", response_model=IndexStatusResponse)
@@ -71,6 +73,7 @@ def create_app() -> FastAPI:
             Query(description="Local index directory. Defaults to PAPER_RAG_INDEX_DIR."),
         ] = None,
     ) -> IndexStatusResponse:
+        """返回租户范围内的本地索引计数和构建元数据。"""
         local_index = _make_local_index(index_dir)
         status = local_index.store.load_status()
         return _index_status_response(local_index, tenant_id=tenant_id, status=status)
@@ -83,6 +86,7 @@ def create_app() -> FastAPI:
             Query(description="Local index directory. Defaults to PAPER_RAG_INDEX_DIR."),
         ] = None,
     ) -> list[DocumentSummaryResponse]:
+        """列出供 Inspector 文档面板使用的已索引文档。"""
         local_index = _make_local_index(index_dir)
         documents = local_index.store.list_documents(tenant_id=tenant_id)
         return [_document_summary(local_index, document) for document in documents]
@@ -97,6 +101,7 @@ def create_app() -> FastAPI:
         ] = None,
         limit: Annotated[int, Query(ge=1, le=500)] = 50,
     ) -> list[ChunkResponse]:
+        """列出某个文档的 chunk，方便把引用追溯到源页面。"""
         local_index = _make_local_index(index_dir)
         document = local_index.store.get_document(document_id)
         if document is None or document.tenant_id != tenant_id:
@@ -137,6 +142,7 @@ def create_app() -> FastAPI:
             Form(description="Embedding model name."),
         ] = None,
     ) -> UploadIndexResponse:
+        """保存一个上传的 PDF，并同步触发本地索引流水线。"""
         settings = load_settings()
         file_name = file.filename or ""
         content = await file.read()
@@ -181,6 +187,7 @@ def create_app() -> FastAPI:
 
     @app.post("/api/ask", response_model=AskResponse)
     def ask(request: AskRequest) -> AskResponse:
+        """回答一个问题，并返回引用和原始检索证据。"""
         settings = load_settings()
         local_index = LocalPaperIndex(request.index_dir or settings.index_dir)
         status = local_index.store.load_status()
@@ -228,11 +235,13 @@ def create_app() -> FastAPI:
 
 
 def _make_local_index(index_dir: str | None) -> LocalPaperIndex:
+    """根据配置默认值解析调用方提供的索引路径。"""
     settings = load_settings()
     return LocalPaperIndex(Path(index_dir) if index_dir else settings.index_dir)
 
 
 def _bad_request(*, stage: str, exc: Exception) -> HTTPException:
+    """把预期中的流水线失败包装成结构化的 HTTP 400 响应。"""
     detail = ErrorDetailResponse(
         stage=stage,
         error_type=exc.__class__.__name__,
@@ -247,6 +256,7 @@ def _index_status_response(
     tenant_id: str,
     status,
 ) -> IndexStatusResponse:
+    """把持久化的索引状态转换为租户专属的 API 响应。"""
     if status is None:
         return IndexStatusResponse(
             status="missing",
@@ -270,6 +280,7 @@ def _index_status_response(
 
 
 def _make_embedding_client(*, embedding_model: str | None, local: bool):
+    """根据 API 参数和设置创建所需的 embedding 边界。"""
     settings = load_settings()
     model_name = embedding_model or ("hash-embedding-v1" if local else settings.embedding_model)
     if local or model_name.startswith("hash-"):
@@ -282,6 +293,7 @@ def _make_embedding_client(*, embedding_model: str | None, local: bool):
 
 
 def _make_answer_generator(*, llm_model: str, local: bool, min_score: float):
+    """创建本地抽取式生成器或配置好的 LLM 生成器。"""
     settings = load_settings()
     if local:
         return ExtractiveAnswerGenerator(min_score=min_score)
@@ -299,6 +311,7 @@ def _document_summary(
     local_index: LocalPaperIndex,
     document: Document,
 ) -> DocumentSummaryResponse:
+    """把文档元数据与当前版本哈希和 chunk 数量拼接给 UI。"""
     current_version = (
         local_index.store.get_version(document.current_version_id)
         if document.current_version_id
@@ -324,6 +337,7 @@ def _document_summary(
 
 
 def _chunk_response(chunk: Chunk, document: Document | None) -> ChunkResponse:
+    """把内部 chunk 元数据转换成 Inspector 响应模型。"""
     return ChunkResponse(
         id=chunk.id,
         document_id=chunk.document_id,
@@ -338,6 +352,7 @@ def _chunk_response(chunk: Chunk, document: Document | None) -> ChunkResponse:
 
 
 def _stored_upload_response(upload: StoredUpload) -> StoredUploadResponse:
+    """把受管上传存储详情转换成适合 API 返回的响应。"""
     return StoredUploadResponse(
         tenant_id=upload.tenant_id,
         storage_tenant=upload.storage_tenant,
@@ -351,6 +366,7 @@ def _stored_upload_response(upload: StoredUpload) -> StoredUploadResponse:
 
 
 def _indexing_summary_response(result: IndexBuildResult) -> IndexingSummaryResponse:
+    """为上传结果面板汇总索引构建计数和问题。"""
     return IndexingSummaryResponse(
         indexed=len(result.indexed_documents),
         reused_source=len(result.reused_source_documents),
@@ -366,6 +382,7 @@ def _indexing_summary_response(result: IndexBuildResult) -> IndexingSummaryRespo
 
 
 def _skipped_file_response(skipped_file: SkippedFile) -> FileIssueResponse:
+    """把被跳过的源文件映射为共享的 API 问题结构。"""
     return FileIssueResponse(
         source_path=skipped_file.source_path,
         reason=skipped_file.reason,
@@ -373,6 +390,7 @@ def _skipped_file_response(skipped_file: SkippedFile) -> FileIssueResponse:
 
 
 def _parse_issue_response(issue: ParseIssue) -> FileIssueResponse:
+    """把解析器警告和错误映射为共享的 API 问题结构。"""
     return FileIssueResponse(
         source_path=issue.source_path,
         message=issue.message,
@@ -381,6 +399,7 @@ def _parse_issue_response(issue: ParseIssue) -> FileIssueResponse:
 
 
 def _citation_response(citation: Citation) -> CitationResponse:
+    """把领域内的引用转换为结构化 API 引用。"""
     return CitationResponse(
         label=citation.label,
         document_id=citation.document_id,
@@ -394,6 +413,7 @@ def _citation_response(citation: Citation) -> CitationResponse:
 
 
 def _evidence_response(result: SearchResult, *, used: bool) -> EvidenceResponse:
+    """把检索到的 chunk 与排名元数据和回答使用状态组合起来。"""
     return EvidenceResponse(
         chunk=_chunk_response(result.chunk, result.document),
         score=result.score,

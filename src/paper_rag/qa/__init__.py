@@ -1,4 +1,4 @@
-"""Question answering utilities."""
+"""问答工具。"""
 
 from paper_rag.qa.answering import (
     ExtractiveAnswerGenerator,

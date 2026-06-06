@@ -1,4 +1,4 @@
-"""Command line interface for the Paper RAG learning project."""
+"""Paper RAG 学习项目的命令行界面。"""
 
 from pathlib import Path
 from typing import Annotated
@@ -25,6 +25,7 @@ app = typer.Typer(
 
 
 def _version_callback(value: bool) -> None:
+    """在 Typer 接收到全局版本标志时提前输出包版本。"""
     if value:
         typer.echo(f"paper-rag {__version__}")
         raise typer.Exit()
@@ -37,7 +38,7 @@ def main(
         typer.Option("--version", callback=_version_callback, help="Show the package version."),
     ] = False,
 ) -> None:
-    """Configure process-level CLI behavior."""
+    """配置进程级 CLI 行为。"""
     _ = version
     settings = load_settings()
     configure_logging(settings.log_level)
@@ -82,7 +83,7 @@ def index(
         typer.Option("--recursive/--no-recursive", help="Scan PDF files recursively."),
     ] = True,
 ) -> None:
-    """Import a PDF directory and build/update the local index."""
+    """导入 PDF 目录并构建或更新本地索引。"""
     settings = load_settings()
     target_index_dir = index_dir or settings.index_dir
     embedding_client = _make_embedding_client(
@@ -154,7 +155,7 @@ def ask(
         typer.Option("--local", help="Use local hash embeddings and extractive answering."),
     ] = False,
 ) -> None:
-    """Ask a question against an existing local index."""
+    """向现有本地索引提问。"""
     settings = load_settings()
     target_index_dir = index_dir or settings.index_dir
     effective_top_k = top_k if top_k is not None else settings.top_k
@@ -198,7 +199,7 @@ def list_docs(
         typer.Option("--tenant-id", help="Tenant/workspace ID for data isolation."),
     ] = "default",
 ) -> None:
-    """List indexed documents."""
+    """列出已索引的文档。"""
     settings = load_settings()
     local_index = LocalPaperIndex(index_dir or settings.index_dir)
     status = local_index.store.load_status()
@@ -249,7 +250,7 @@ def show_chunks(
     ] = "default",
     limit: Annotated[int, typer.Option("--limit", min=1, help="Maximum chunks to show.")] = 5,
 ) -> None:
-    """Show chunk debug output for an indexed document."""
+    """显示已索引文档的 chunk 调试输出。"""
     settings = load_settings()
     local_index = LocalPaperIndex(index_dir or settings.index_dir)
     document = _find_document(local_index.store.list_documents(tenant_id=tenant_id), document_ref)
@@ -293,7 +294,7 @@ def serve(
         typer.Option("--reload", help="Enable auto-reload for local development."),
     ] = False,
 ) -> None:
-    """Run the FastAPI-backed Web Inspector for local verification."""
+    """运行用于本地验证的 FastAPI Web Inspector。"""
     try:
         import uvicorn
     except ModuleNotFoundError as exc:
@@ -311,6 +312,7 @@ def serve(
 
 
 def _make_embedding_client(*, embedding_model: str | None, local: bool):
+    """根据 CLI 标志和环境设置创建 embedding 客户端。"""
     settings = load_settings()
     model_name = embedding_model or ("hash-embedding-v1" if local else settings.embedding_model)
     if local or model_name.startswith("hash-"):
@@ -323,6 +325,7 @@ def _make_embedding_client(*, embedding_model: str | None, local: bool):
 
 
 def _make_answer_generator(*, llm_model: str, local: bool, min_score: float):
+    """根据 CLI 标志和环境设置创建答案生成器。"""
     settings = load_settings()
     if local:
         return ExtractiveAnswerGenerator(min_score=min_score)
@@ -337,6 +340,7 @@ def _make_answer_generator(*, llm_model: str, local: bool, min_score: float):
 
 
 def _find_document(documents: list[Document], document_ref: str | None) -> Document | None:
+    """按 ID 前缀或不区分大小写的文件名解析 CLI 文档引用。"""
     if document_ref is None:
         return None
     lowered_ref = document_ref.lower()

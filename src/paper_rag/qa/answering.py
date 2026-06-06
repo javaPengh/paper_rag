@@ -1,36 +1,47 @@
-"""Answer generation and citation formatting."""
+"""答案生成和引用格式化。"""
 
 from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 from paper_rag.exceptions import AnswerGenerationError
 from paper_rag.schemas import Answer, Citation, SearchResult
 
+# 本地和 LLM 驱动的答案生成器共用的标准拒答文本。
 INSUFFICIENT_ANSWER = "不足以回答：当前检索到的证据不足以支持可靠答案。"
 
 
 class ChatClient(Protocol):
-    """Minimal chat completion interface for answer generation."""
+    """用于答案生成的最小聊天补全接口。"""
 
+    # 该提供方/模型标识会复制到 Answer.model_name 里，便于追踪。
     model_name: str
 
     def complete(self, *, system_prompt: str, user_prompt: str) -> str:
-        """Return one answer string."""
+        """返回一个答案字符串。"""
 
 
 @dataclass
 class OpenAIChatClient:
-    """OpenAI-compatible chat client."""
+    """OpenAI 兼容的聊天客户端。"""
 
-    model_name: str
-    api_key: str | None = None
-    base_url: str | None = None
+    model_name: str = field(
+        metadata={"description": "OpenAI-compatible chat model used for answer generation."},
+    )
+    api_key: str | None = field(
+        default=None,
+        metadata={"description": "API key for the chat provider."},
+    )
+    base_url: str | None = field(
+        default=None,
+        metadata={"description": "Optional OpenAI-compatible chat endpoint override."},
+    )
 
     def complete(self, *, system_prompt: str, user_prompt: str) -> str:
+        """调用聊天提供方并返回非空答案字符串。"""
         try:
             from openai import OpenAI
         except ModuleNotFoundError as exc:
@@ -60,12 +71,18 @@ class OpenAIChatClient:
 
 @dataclass
 class OpenAIAnswerGenerator:
-    """Generate citation-backed answers with an OpenAI-compatible chat model."""
+    """使用 OpenAI 兼容聊天模型生成带引用的答案。"""
 
-    chat_client: ChatClient
-    min_score: float = 0.05
+    chat_client: ChatClient = field(
+        metadata={"description": "Chat completion boundary used to generate final answers."},
+    )
+    min_score: float = field(
+        default=0.05,
+        metadata={"description": "Minimum retrieval score for evidence to enter the prompt."},
+    )
 
     def generate(self, question: str, results: Sequence[SearchResult]) -> Answer:
+        """根据检索到的证据生成一个有依据的答案，或者返回拒答。"""
         usable_results = filter_usable_results(question, results, min_score=self.min_score)
         citations = citations_from_results(usable_results)
         context = build_answer_context(usable_results)
@@ -102,13 +119,23 @@ class OpenAIAnswerGenerator:
 
 @dataclass
 class ExtractiveAnswerGenerator:
-    """Deterministic local answer generator for offline CLI verification."""
+    """用于离线 CLI 验证的确定性本地答案生成器。"""
 
-    model_name: str = "extractive-local-v1"
-    min_score: float = 0.05
-    max_evidence_items: int = 3
+    model_name: str = field(
+        default="extractive-local-v1",
+        metadata={"description": "Local answer generator identifier."},
+    )
+    min_score: float = field(
+        default=0.05,
+        metadata={"description": "Minimum retrieval score for extractive evidence."},
+    )
+    max_evidence_items: int = field(
+        default=3,
+        metadata={"description": "Maximum evidence chunks included in the local answer."},
+    )
 
     def generate(self, question: str, results: Sequence[SearchResult]) -> Answer:
+        """通过总结检索到的 chunk 并附上引用来构造确定性答案。"""
         usable_results = filter_usable_results(question, results, min_score=self.min_score)
         context = build_answer_context(usable_results)
         if not usable_results:
@@ -133,6 +160,7 @@ class ExtractiveAnswerGenerator:
 
 
 def build_system_prompt() -> str:
+    """创建用于 LLM 答案生成的依据约束说明。"""
     return (
         "You answer questions using only the provided evidence. "
         "If the evidence is insufficient, answer exactly in Chinese: "
@@ -143,10 +171,12 @@ def build_system_prompt() -> str:
 
 
 def build_user_prompt(question: str, context: str) -> str:
+    """把用户问题和证据上下文合并成一个模型提示词。"""
     return f"Question:\n{question}\n\nEvidence:\n{context}\n\nAnswer:"
 
 
 def build_answer_context(results: Sequence[SearchResult]) -> str:
+    """把检索到的 chunk 序列化为编号证据块，供答案提示词使用。"""
     lines: list[str] = []
     for index, result in enumerate(results, start=1):
         citation = citation_from_result(result)
@@ -158,6 +188,7 @@ def build_answer_context(results: Sequence[SearchResult]) -> str:
 
 
 def citations_from_results(results: Sequence[SearchResult]) -> list[Citation]:
+    """按检索顺序创建去重后的引用。"""
     citations: list[Citation] = []
     seen_chunk_ids: set[str] = set()
     for result in results:
@@ -169,6 +200,7 @@ def citations_from_results(results: Sequence[SearchResult]) -> list[Citation]:
 
 
 def citation_from_result(result: SearchResult) -> Citation:
+    """把一个检索结果转换为带文件和页码来源信息的引用。"""
     document = result.document
     file_name = document.file_name if document is not None else result.chunk.document_id
     return Citation(
@@ -188,6 +220,7 @@ def filter_usable_results(
     *,
     min_score: float,
 ) -> list[SearchResult]:
+    """按分数和轻量词汇重叠过滤检索到的 chunk，以保证 MVP 安全性。"""
     question_terms = content_terms(question)
     usable: list[SearchResult] = []
     for result in results:
@@ -200,6 +233,7 @@ def filter_usable_results(
 
 
 def content_terms(text: str) -> set[str]:
+    """提取用于 MVP 证据充分性过滤的粗粒度词汇锚点。"""
     stop_words = {
         "a",
         "an",
@@ -224,6 +258,7 @@ def content_terms(text: str) -> set[str]:
 
 
 def summarize_chunk(text: str, *, max_length: int = 260) -> str:
+    """在不改变源 chunk 文本的情况下创建紧凑的引用片段。"""
     cleaned = " ".join(text.split())
     if len(cleaned) <= max_length:
         return cleaned
@@ -231,6 +266,7 @@ def summarize_chunk(text: str, *, max_length: int = 260) -> str:
 
 
 def ensure_answer_has_citation(answer_text: str, citations: Sequence[Citation]) -> str:
+    """当模型忘记包含允许的引用标签时，附加第一个引用。"""
     if not citations:
         return answer_text
     if any(citation.label in answer_text for citation in citations):
@@ -239,6 +275,7 @@ def ensure_answer_has_citation(answer_text: str, citations: Sequence[Citation]) 
 
 
 def insufficient_answer(question: str, model_name: str, *, context: str | None = None) -> Answer:
+    """创建标准的有依据拒答答案。"""
     return Answer(
         question=question,
         answer=INSUFFICIENT_ANSWER,
@@ -251,6 +288,7 @@ def insufficient_answer(question: str, model_name: str, *, context: str | None =
 
 
 def format_answer(answer: Answer) -> str:
+    """把 Answer 渲染成 CLI 输出，同时保留结构化数据。"""
     lines = ["Answer:", answer.answer]
     if answer.citations:
         lines.extend(["", "Citations:"])

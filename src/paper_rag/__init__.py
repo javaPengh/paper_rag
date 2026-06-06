@@ -1,4 +1,4 @@
-"""Paper RAG learning project package."""
+"""Paper RAG 学习项目包。"""
 
 __all__ = ["__version__"]
 

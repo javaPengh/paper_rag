@@ -1,4 +1,4 @@
-"""Retrieval utilities."""
+"""检索工具。"""
 
 from paper_rag.retrieval.search import Retriever
 

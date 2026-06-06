@@ -59,14 +59,14 @@
 
 ## 3. Evaluation dataset parser
 
-- [ ] 增加 `src/paper_rag/evaluation/` 模块
-- [ ] 定义 `EvalCase` 数据模型
-- [ ] 定义 `EvalDataset` 或等价集合模型
-- [ ] 实现 JSONL parser
-- [ ] 校验重复 case id
-- [ ] 校验 answerable 与 golden 字段的一致性
-- [ ] 对格式错误给出清晰错误信息
-- [ ] 增加 parser 单元测试
+- [x] 增加 `src/paper_rag/evaluation/` 模块
+- [x] 定义 `EvalCase` 数据模型
+- [x] 定义 `EvalDataset` 或等价集合模型
+- [x] 实现 JSONL parser
+- [x] 校验重复 case id
+- [x] 校验 answerable 与 golden 字段的一致性
+- [x] 对格式错误给出清晰错误信息
+- [x] 增加 parser 单元测试
 
 ## 4. Evaluation runner
 

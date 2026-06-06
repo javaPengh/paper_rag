@@ -1,4 +1,4 @@
-"""Indexing utilities."""
+"""索引工具。"""
 
 from paper_rag.indexing.chunking import ChunkingConfig, chunk_pages
 from paper_rag.indexing.local_index import LocalPaperIndex

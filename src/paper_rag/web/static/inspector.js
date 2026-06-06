@@ -1,8 +1,12 @@
+// Local Web Inspector behavior for exercising the MVP RAG flow from a browser.
+
+// UI-only state; persisted RAG data lives behind the FastAPI API and local index storage.
 const state = {
   documents: [],
   selectedDocumentId: null,
 };
 
+// Cached DOM references keep event handlers small and make missing inspector elements obvious.
 const el = {
   serviceStatus: document.querySelector("#service-status"),
   workspaceForm: document.querySelector("#workspace-form"),
@@ -32,6 +36,7 @@ const el = {
 };
 
 function workspaceParams() {
+  // Query-string form used by GET endpoints that inspect a tenant/index workspace.
   const params = new URLSearchParams();
   const tenantId = el.tenantId.value.trim() || "default";
   const indexDir = el.indexDir.value.trim();
@@ -43,6 +48,7 @@ function workspaceParams() {
 }
 
 function workspacePayload() {
+  // JSON body baseline shared by POST endpoints that operate on a tenant/index workspace.
   const payload = {
     tenant_id: el.tenantId.value.trim() || "default",
     local: el.localMode.checked,
@@ -55,6 +61,7 @@ function workspacePayload() {
 }
 
 async function requestJson(url, options = {}) {
+  // Centralized API wrapper so structured backend errors render consistently in the UI.
   const headers = options.body instanceof FormData ? {} : { "Content-Type": "application/json" };
   const response = await fetch(url, {
     headers,
@@ -68,6 +75,7 @@ async function requestJson(url, options = {}) {
 }
 
 function apiErrorMessage(detail, status) {
+  // FastAPI can return plain strings or structured error objects depending on failure stage.
   if (typeof detail === "string") {
     return detail;
   }
@@ -79,11 +87,13 @@ function apiErrorMessage(detail, status) {
 }
 
 function setBadge(status) {
+  // Status is mirrored into the class name so CSS can style ready/error states.
   el.indexBadge.textContent = status || "unknown";
   el.indexBadge.className = `badge ${status || ""}`;
 }
 
 function setStatusGrid(status) {
+  // The grid intentionally shows raw operational metadata for acceptance/debugging.
   const rows = [
     ["Tenant", status.tenant_id],
     ["Documents", status.document_count],
@@ -103,6 +113,7 @@ function setStatusGrid(status) {
 }
 
 function emptyNode(text = "No data") {
+  // Reusable placeholder node for panels with no current backend data.
   const node = document.createElement("div");
   node.className = "empty-state";
   node.textContent = text;
@@ -110,6 +121,7 @@ function emptyNode(text = "No data") {
 }
 
 function errorNode(message) {
+  // Reusable visible error node used instead of alert boxes during manual acceptance.
   const node = document.createElement("div");
   node.className = "error-state";
   node.textContent = message;
@@ -117,6 +129,7 @@ function errorNode(message) {
 }
 
 function loadingNode() {
+  // Reusable loading node for synchronous MVP operations that may still take seconds.
   const node = document.createElement("div");
   node.className = "loading-state";
   node.textContent = "Loading...";
@@ -124,6 +137,7 @@ function loadingNode() {
 }
 
 function shortHash(value) {
+  // Keep long IDs scannable while preserving enough prefix for manual correlation.
   if (!value) {
     return "none";
   }
@@ -131,6 +145,7 @@ function shortHash(value) {
 }
 
 function renderDocuments(documents) {
+  // Render the document list and wire document selection to chunk inspection.
   el.documentList.replaceChildren();
   el.documentCount.textContent = String(documents.length);
   if (!documents.length) {
@@ -165,6 +180,7 @@ function renderDocuments(documents) {
 }
 
 function renderUploadResult(result) {
+  // Show both storage and indexing results so upload failures are easy to distinguish.
   const index = result.index;
   const upload = result.upload;
   el.uploadOutput.replaceChildren();
@@ -192,6 +208,7 @@ function renderUploadResult(result) {
 }
 
 function renderUploadIssues(label, issues) {
+  // Render skipped files, warnings, and errors using the same visual structure.
   if (!issues || !issues.length) {
     return;
   }
@@ -215,6 +232,7 @@ function renderUploadIssues(label, issues) {
 }
 
 async function selectDocument(documentId) {
+  // Store selection locally, refresh active styles, then load chunks for that document.
   state.selectedDocumentId = documentId;
   renderDocuments(state.documents);
   const documentItem = state.documents.find((item) => item.id === documentId);
@@ -224,6 +242,7 @@ async function selectDocument(documentId) {
 }
 
 function renderChunks(chunks) {
+  // Render chunk text with provenance metadata used to validate citation traceability.
   el.chunkList.replaceChildren();
   if (!chunks.length) {
     el.chunkList.append(emptyNode());
@@ -253,6 +272,7 @@ function renderChunks(chunks) {
 }
 
 function renderAskResult(result) {
+  // Render final answer, citations, and all retrieved evidence for acceptance inspection.
   el.answerOutput.textContent = result.answer;
   el.citationList.replaceChildren();
   el.evidenceList.replaceChildren();
@@ -298,6 +318,7 @@ function renderAskResult(result) {
 }
 
 async function loadHealth() {
+  // Populate the header with a simple service status before the user starts testing.
   try {
     const health = await requestJson("/health");
     el.serviceStatus.textContent = `${health.status} | version ${health.version}`;
@@ -307,6 +328,7 @@ async function loadHealth() {
 }
 
 async function loadWorkspace() {
+  // Refresh status and documents together so the inspector reflects one workspace view.
   el.documentList.replaceChildren(loadingNode());
   el.chunkList.replaceChildren(emptyNode("Select a document"));
   el.reloadChunks.disabled = true;
@@ -330,6 +352,7 @@ async function loadWorkspace() {
 }
 
 async function uploadDocument(event) {
+  // Submit one PDF upload and trigger synchronous indexing through the backend API.
   event.preventDefault();
   const file = el.uploadFile.files[0];
   if (!file) {
@@ -371,6 +394,7 @@ async function uploadDocument(event) {
 }
 
 async function loadChunks() {
+  // Load chunks for the selected document; no-op until a document is selected.
   if (!state.selectedDocumentId) {
     return;
   }
@@ -388,6 +412,7 @@ async function loadChunks() {
 }
 
 async function askQuestion(event) {
+  // Submit a question and render both the answer and diagnostic retrieval evidence.
   event.preventDefault();
   const question = el.question.value.trim();
   if (!question) {

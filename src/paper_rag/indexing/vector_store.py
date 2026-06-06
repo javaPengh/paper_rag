@@ -1,8 +1,8 @@
-"""Chroma-backed vector storage for chunk embeddings."""
+"""基于 Chroma 的 chunk embedding 向量存储。"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -12,17 +12,23 @@ from paper_rag.schemas import Chunk, Document
 
 @dataclass(frozen=True)
 class VectorHit:
-    """Raw vector search hit."""
+    """原始向量检索命中结果。"""
 
-    chunk_id: str
-    score: float
-    distance: float | None = None
+    chunk_id: str = field(metadata={"description": "Chunk ID returned by vector search."})
+    score: float = field(
+        metadata={"description": "Similarity score derived from the backend distance."},
+    )
+    distance: float | None = field(
+        default=None,
+        metadata={"description": "Raw vector backend distance when available."},
+    )
 
 
 class ChromaVectorStore:
-    """Persistent Chroma collection for chunk embeddings."""
+    """用于 chunk embedding 的持久化 Chroma 集合。"""
 
     def __init__(self, index_dir: Path, collection_name: str = "paper_rag_chunks_v2") -> None:
+        """在本地索引目录下准备一个延迟初始化的 Chroma 集合。"""
         self.index_dir = Path(index_dir)
         self.chroma_dir = self.index_dir / "chroma"
         self.collection_name = collection_name
@@ -34,6 +40,7 @@ class ChromaVectorStore:
         embeddings: list[list[float]],
         documents_by_id: dict[str, Document],
     ) -> None:
+        """把 chunk embedding 和轻量元数据写入 Chroma。"""
         if not chunks:
             return
         if len(chunks) != len(embeddings):
@@ -52,6 +59,7 @@ class ChromaVectorStore:
         )
 
     def delete_document_version_ids(self, document_version_ids: list[str]) -> None:
+        """在重新索引时删除过期文档版本的向量。"""
         if not document_version_ids:
             return
         collection = self._get_collection()
@@ -70,6 +78,7 @@ class ChromaVectorStore:
         tenant_id: str,
         top_k: int,
     ) -> list[VectorHit]:
+        """搜索按租户过滤的 chunk，并返回原始向量命中结果。"""
         if top_k <= 0:
             raise ValueError("top_k must be greater than 0")
 
@@ -95,6 +104,7 @@ class ChromaVectorStore:
         return hits
 
     def _get_collection(self):
+        """延迟创建或复用持久化的 Chroma 集合。"""
         if self._collection is not None:
             return self._collection
 
@@ -120,6 +130,7 @@ class ChromaVectorStore:
 
     @staticmethod
     def _metadata_for_chunk(chunk: Chunk, document: Document | None) -> dict[str, Any]:
+        """构建支持租户过滤和调试的紧凑元数据。"""
         tenant_id = (
             document.tenant_id
             if document is not None

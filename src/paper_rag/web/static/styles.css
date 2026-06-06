@@ -1,3 +1,5 @@
+/* Styling for the local Web Inspector acceptance UI, not the future product app. */
+
 :root {
   color-scheme: light;
   --bg: #f5f7f8;
