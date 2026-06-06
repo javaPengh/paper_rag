@@ -15,8 +15,8 @@ TEST_PDF_TEXT = (
 )
 
 
-def test_cli_local_mvp_flow() -> None:
-    run_dir = Path(".paper_rag") / "test_cli" / uuid4().hex
+def test_cli_local_mvp_flow(tmp_path: Path) -> None:
+    run_dir = tmp_path / "test_cli" / uuid4().hex
     source_dir = run_dir / "papers"
     index_dir = run_dir / "index"
     _write_test_pdf(source_dir / "paper_rag_test.pdf")

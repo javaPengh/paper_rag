@@ -19,8 +19,8 @@ TEST_PDF_TEXT = (
 )
 
 
-def test_api_inspector_local_flow() -> None:
-    run_dir = Path(".paper_rag") / "test_api" / uuid4().hex
+def test_api_inspector_local_flow(tmp_path: Path) -> None:
+    run_dir = tmp_path / "test_api" / uuid4().hex
     source_dir = run_dir / "papers"
     index_dir = run_dir / "index"
     _write_test_pdf(source_dir / "paper_rag_test.pdf")
@@ -88,8 +88,11 @@ def test_api_serves_inspector_upload_ui() -> None:
     assert 'src="/static/inspector.js"' in page.text
 
 
-def test_api_uploads_pdf_and_triggers_local_indexing(monkeypatch: pytest.MonkeyPatch) -> None:
-    run_dir = Path(".paper_rag") / "test_api_upload" / uuid4().hex
+def test_api_uploads_pdf_and_triggers_local_indexing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_dir = tmp_path / "test_api_upload" / uuid4().hex
     source_dir = run_dir / "source"
     index_dir = run_dir / "index"
     upload_dir = run_dir / "uploads"
@@ -178,8 +181,11 @@ def test_api_uploads_pdf_and_triggers_local_indexing(monkeypatch: pytest.MonkeyP
     assert insufficient_payload["citations"] == []
 
 
-def test_api_upload_rejects_non_pdf(monkeypatch: pytest.MonkeyPatch) -> None:
-    run_dir = Path(".paper_rag") / "test_api_upload" / uuid4().hex
+def test_api_upload_rejects_non_pdf(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_dir = tmp_path / "test_api_upload" / uuid4().hex
     monkeypatch.setenv("PAPER_RAG_UPLOAD_DIR", str(run_dir / "uploads"))
 
     client = TestClient(create_app())
@@ -200,8 +206,11 @@ def test_api_upload_rejects_non_pdf(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "Only PDF" in detail["message"]
 
 
-def test_api_upload_rejects_empty_pdf(monkeypatch: pytest.MonkeyPatch) -> None:
-    run_dir = Path(".paper_rag") / "test_api_upload" / uuid4().hex
+def test_api_upload_rejects_empty_pdf(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_dir = tmp_path / "test_api_upload" / uuid4().hex
     monkeypatch.setenv("PAPER_RAG_UPLOAD_DIR", str(run_dir / "uploads"))
 
     client = TestClient(create_app())
@@ -222,8 +231,11 @@ def test_api_upload_rejects_empty_pdf(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "empty" in detail["message"]
 
 
-def test_api_upload_rejects_pdf_over_size_limit(monkeypatch: pytest.MonkeyPatch) -> None:
-    run_dir = Path(".paper_rag") / "test_api_upload" / uuid4().hex
+def test_api_upload_rejects_pdf_over_size_limit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_dir = tmp_path / "test_api_upload" / uuid4().hex
     monkeypatch.setenv("PAPER_RAG_UPLOAD_DIR", str(run_dir / "uploads"))
     monkeypatch.setenv("PAPER_RAG_UPLOAD_MAX_BYTES", "5")
 
@@ -245,9 +257,10 @@ def test_api_upload_rejects_pdf_over_size_limit(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_api_upload_returns_structured_errors_for_unparseable_pdf(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    run_dir = Path(".paper_rag") / "test_api_upload" / uuid4().hex
+    run_dir = tmp_path / "test_api_upload" / uuid4().hex
     monkeypatch.setenv("PAPER_RAG_UPLOAD_DIR", str(run_dir / "uploads"))
 
     client = TestClient(create_app())
@@ -269,9 +282,10 @@ def test_api_upload_returns_structured_errors_for_unparseable_pdf(
 
 
 def test_api_upload_returns_structured_indexing_error(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    run_dir = Path(".paper_rag") / "test_api_upload" / uuid4().hex
+    run_dir = tmp_path / "test_api_upload" / uuid4().hex
     source_dir = run_dir / "source"
     index_dir = run_dir / "index"
     upload_dir = run_dir / "uploads"

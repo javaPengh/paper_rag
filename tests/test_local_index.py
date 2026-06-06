@@ -8,8 +8,8 @@ from paper_rag.retrieval import Retriever
 from paper_rag.schemas import Chunk, Document, DocumentVersion
 
 
-def test_local_index_upserts_and_retrieves_chunks() -> None:
-    index_dir = Path(".paper_rag") / "test_indexes" / uuid4().hex
+def test_local_index_upserts_and_retrieves_chunks(tmp_path: Path) -> None:
+    index_dir = tmp_path / "test_indexes" / uuid4().hex
     embedding_client = HashEmbeddingClient(dimensions=32)
     local_index = LocalPaperIndex(index_dir)
     document = Document(
@@ -69,8 +69,8 @@ def test_local_index_upserts_and_retrieves_chunks() -> None:
     assert results[0].score > 0
 
 
-def test_retriever_reports_empty_index() -> None:
-    index_dir = Path(".paper_rag") / "test_indexes" / uuid4().hex
+def test_retriever_reports_empty_index(tmp_path: Path) -> None:
+    index_dir = tmp_path / "test_indexes" / uuid4().hex
     embedding_client = HashEmbeddingClient(dimensions=32)
     retriever = Retriever(
         local_index=LocalPaperIndex(index_dir),

@@ -22,8 +22,8 @@ class CountingEmbeddingClient:
         return self.inner.embed_texts(texts)
 
 
-def test_build_index_reuses_unchanged_pdf_and_reindexes_changed_pdf() -> None:
-    run_dir = Path(".paper_rag") / "test_pipeline" / uuid4().hex
+def test_build_index_reuses_unchanged_pdf_and_reindexes_changed_pdf(tmp_path: Path) -> None:
+    run_dir = tmp_path / "test_pipeline" / uuid4().hex
     source_dir = run_dir / "source"
     index_dir = run_dir / "index"
     source_dir.mkdir(parents=True, exist_ok=True)
@@ -80,8 +80,10 @@ def test_build_index_reuses_unchanged_pdf_and_reindexes_changed_pdf() -> None:
     assert "gamma" in results[0].chunk.text.lower()
 
 
-def test_build_index_reuses_same_content_from_different_paths_without_embedding() -> None:
-    run_dir = Path(".paper_rag") / "test_pipeline" / uuid4().hex
+def test_build_index_reuses_same_content_from_different_paths_without_embedding(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "test_pipeline" / uuid4().hex
     source_dir = run_dir / "source"
     index_dir = run_dir / "index"
     source_dir.mkdir(parents=True, exist_ok=True)
@@ -114,8 +116,8 @@ def test_build_index_reuses_same_content_from_different_paths_without_embedding(
     assert first_text_count >= 1
 
 
-def test_build_index_keeps_same_content_isolated_between_tenants() -> None:
-    run_dir = Path(".paper_rag") / "test_pipeline" / uuid4().hex
+def test_build_index_keeps_same_content_isolated_between_tenants(tmp_path: Path) -> None:
+    run_dir = tmp_path / "test_pipeline" / uuid4().hex
     source_dir = run_dir / "source"
     index_dir = run_dir / "index"
     source_dir.mkdir(parents=True, exist_ok=True)
