@@ -1,12 +1,14 @@
-// Local Web Inspector behavior for exercising the MVP RAG flow from a browser.
+// 本地 Web Inspector 行为，用于从浏览器触发 MVP RAG 流程。
 
-// UI-only state; persisted RAG data lives behind the FastAPI API and local index storage.
+// 仅保存界面状态；持久化 RAG 数据由 FastAPI API 和本地索引存储负责。
 const state = {
   documents: [],
   selectedDocumentId: null,
+  config: null,
+  components: null,
 };
 
-// Cached DOM references keep event handlers small and make missing inspector elements obvious.
+// 缓存 DOM 引用，让事件处理函数保持短小，并尽早暴露缺失的界面元素。
 const el = {
   serviceStatus: document.querySelector("#service-status"),
   workspaceForm: document.querySelector("#workspace-form"),
@@ -18,7 +20,7 @@ const el = {
   uploadFile: document.querySelector("#upload-file"),
   uploadChunkSize: document.querySelector("#upload-chunk-size"),
   uploadChunkOverlap: document.querySelector("#upload-chunk-overlap"),
-  uploadLocalMode: document.querySelector("#upload-local-mode"),
+  uploadMode: document.querySelector("#upload-mode"),
   uploadButton: document.querySelector("#upload-button"),
   uploadOutput: document.querySelector("#upload-output"),
   documentCount: document.querySelector("#document-count"),
@@ -29,14 +31,14 @@ const el = {
   askForm: document.querySelector("#ask-form"),
   question: document.querySelector("#question"),
   topK: document.querySelector("#top-k"),
-  localMode: document.querySelector("#local-mode"),
+  askMode: document.querySelector("#ask-mode"),
   answerOutput: document.querySelector("#answer-output"),
   citationList: document.querySelector("#citation-list"),
   evidenceList: document.querySelector("#evidence-list"),
 };
 
 function workspaceParams() {
-  // Query-string form used by GET endpoints that inspect a tenant/index workspace.
+  // GET 检查接口使用的租户和索引工作区查询参数。
   const params = new URLSearchParams();
   const tenantId = el.tenantId.value.trim() || "default";
   const indexDir = el.indexDir.value.trim();
@@ -48,10 +50,10 @@ function workspaceParams() {
 }
 
 function workspacePayload() {
-  // JSON body baseline shared by POST endpoints that operate on a tenant/index workspace.
+  // 操作租户和索引工作区的 POST 接口共用的 JSON 请求基础载荷。
   const payload = {
     tenant_id: el.tenantId.value.trim() || "default",
-    local: el.localMode.checked,
+    local: selectedMode(el.askMode) === "local",
   };
   const indexDir = el.indexDir.value.trim();
   if (indexDir) {
@@ -60,8 +62,81 @@ function workspacePayload() {
   return payload;
 }
 
+function selectedMode(selectNode) {
+  // 模式下拉框使用稳定小枚举，显示文本再呈现当前配置的模型名。
+  return selectNode.value === "api" ? "api" : "local";
+}
+
+function setSelectOptions(selectNode, options, selectedValue) {
+  // `/api/config` 加载后重建选项，避免保留过期模型名。
+  selectNode.replaceChildren();
+  for (const option of options) {
+    const node = document.createElement("option");
+    node.value = option.value;
+    node.textContent = option.label;
+    selectNode.append(node);
+  }
+  selectNode.value = selectedValue;
+}
+
+function componentDescriptor(kind, componentId) {
+  // 从后端 catalog 中找到组件描述，找不到时让调用方使用兼容默认值。
+  const catalog = state.components || {};
+  const descriptors = catalog[kind] || [];
+  return descriptors.find((descriptor) => descriptor.id === componentId) || null;
+}
+
+function componentModelLabel(kind, componentId, fallbackModel) {
+  // 下拉框展示的模型名来自 registry 暴露的默认模型和模型列表。
+  const descriptor = componentDescriptor(kind, componentId);
+  const modelId = descriptor?.default_model || fallbackModel;
+  const option = descriptor?.models?.find((item) => item.id === modelId);
+  return option?.label || modelId;
+}
+
+function updateModeOptions() {
+  // 显示 registry 返回的真实模型名，让用户明确每种模式会调用什么。
+  const config = state.config || {};
+  const localEmbedding = componentModelLabel(
+    "embedder",
+    "hash_embedder",
+    config.local_embedding_model || "hash-embedding-v1",
+  );
+  const localAnswer = componentModelLabel(
+    "generator",
+    "extractive_generator",
+    config.local_answer_model || "extractive-local-v1",
+  );
+  const apiEmbedding = componentModelLabel(
+    "embedder",
+    "openai_embedder",
+    config.embedding_model || "text-embedding-3-small",
+  );
+  const apiLlm = componentModelLabel(
+    "generator",
+    "openai_generator",
+    config.llm_model || "gpt-4.1-mini",
+  );
+  setSelectOptions(
+    el.uploadMode,
+    [
+      { value: "local", label: `Local embedding (${localEmbedding})` },
+      { value: "api", label: `API embedding (${apiEmbedding})` },
+    ],
+    selectedMode(el.uploadMode),
+  );
+  setSelectOptions(
+    el.askMode,
+    [
+      { value: "local", label: `Local answer (${localEmbedding} + ${localAnswer})` },
+      { value: "api", label: `API models (${apiEmbedding} + ${apiLlm})` },
+    ],
+    selectedMode(el.askMode),
+  );
+}
+
 async function requestJson(url, options = {}) {
-  // Centralized API wrapper so structured backend errors render consistently in the UI.
+  // 集中封装 API 请求，让结构化后端错误在界面中稳定显示。
   const headers = options.body instanceof FormData ? {} : { "Content-Type": "application/json" };
   const response = await fetch(url, {
     headers,
@@ -75,7 +150,7 @@ async function requestJson(url, options = {}) {
 }
 
 function apiErrorMessage(detail, status) {
-  // FastAPI can return plain strings or structured error objects depending on failure stage.
+  // FastAPI 在不同失败阶段可能返回字符串或结构化错误对象。
   if (typeof detail === "string") {
     return detail;
   }
@@ -87,13 +162,13 @@ function apiErrorMessage(detail, status) {
 }
 
 function setBadge(status) {
-  // Status is mirrored into the class name so CSS can style ready/error states.
+  // 状态同步到 class 名，方便 CSS 区分 ready/error 等状态。
   el.indexBadge.textContent = status || "unknown";
   el.indexBadge.className = `badge ${status || ""}`;
 }
 
 function setStatusGrid(status) {
-  // The grid intentionally shows raw operational metadata for acceptance/debugging.
+  // 状态表格有意展示偏原始的运行元数据，便于验收和调试。
   const rows = [
     ["Tenant", status.tenant_id],
     ["Documents", status.document_count],
@@ -113,7 +188,7 @@ function setStatusGrid(status) {
 }
 
 function emptyNode(text = "No data") {
-  // Reusable placeholder node for panels with no current backend data.
+  // 当前没有后端数据时使用的通用占位节点。
   const node = document.createElement("div");
   node.className = "empty-state";
   node.textContent = text;
@@ -121,7 +196,7 @@ function emptyNode(text = "No data") {
 }
 
 function errorNode(message) {
-  // Reusable visible error node used instead of alert boxes during manual acceptance.
+  // 人工验收时用可见错误节点替代 alert 弹窗。
   const node = document.createElement("div");
   node.className = "error-state";
   node.textContent = message;
@@ -129,7 +204,7 @@ function errorNode(message) {
 }
 
 function loadingNode() {
-  // Reusable loading node for synchronous MVP operations that may still take seconds.
+  // 同步 MVP 操作可能耗时数秒，使用通用加载节点展示状态。
   const node = document.createElement("div");
   node.className = "loading-state";
   node.textContent = "Loading...";
@@ -137,7 +212,7 @@ function loadingNode() {
 }
 
 function shortHash(value) {
-  // Keep long IDs scannable while preserving enough prefix for manual correlation.
+  // 压缩长 ID，同时保留足够前缀方便人工关联。
   if (!value) {
     return "none";
   }
@@ -145,7 +220,7 @@ function shortHash(value) {
 }
 
 function renderDocuments(documents) {
-  // Render the document list and wire document selection to chunk inspection.
+  // 渲染文档列表，并把文档选择连接到 chunk 检查。
   el.documentList.replaceChildren();
   el.documentCount.textContent = String(documents.length);
   if (!documents.length) {
@@ -180,7 +255,7 @@ function renderDocuments(documents) {
 }
 
 function renderUploadResult(result) {
-  // Show both storage and indexing results so upload failures are easy to distinguish.
+  // 同时展示存储和索引结果，便于区分上传失败和索引失败。
   const index = result.index;
   const upload = result.upload;
   el.uploadOutput.replaceChildren();
@@ -208,7 +283,7 @@ function renderUploadResult(result) {
 }
 
 function renderUploadIssues(label, issues) {
-  // Render skipped files, warnings, and errors using the same visual structure.
+  // 用同一视觉结构展示跳过文件、警告和错误。
   if (!issues || !issues.length) {
     return;
   }
@@ -232,7 +307,7 @@ function renderUploadIssues(label, issues) {
 }
 
 async function selectDocument(documentId) {
-  // Store selection locally, refresh active styles, then load chunks for that document.
+  // 在本地记录当前选择，刷新选中样式，再加载该文档的 chunk。
   state.selectedDocumentId = documentId;
   renderDocuments(state.documents);
   const documentItem = state.documents.find((item) => item.id === documentId);
@@ -242,7 +317,7 @@ async function selectDocument(documentId) {
 }
 
 function renderChunks(chunks) {
-  // Render chunk text with provenance metadata used to validate citation traceability.
+  // 渲染 chunk 文本和来源元数据，用于验证 citation 可追溯性。
   el.chunkList.replaceChildren();
   if (!chunks.length) {
     el.chunkList.append(emptyNode());
@@ -272,7 +347,7 @@ function renderChunks(chunks) {
 }
 
 function renderAskResult(result) {
-  // Render final answer, citations, and all retrieved evidence for acceptance inspection.
+  // 渲染最终答案、citation 和全部检索证据，供验收检查。
   el.answerOutput.textContent = result.answer;
   el.citationList.replaceChildren();
   el.evidenceList.replaceChildren();
@@ -318,7 +393,7 @@ function renderAskResult(result) {
 }
 
 async function loadHealth() {
-  // Populate the header with a simple service status before the user starts testing.
+  // 在用户开始测试前，把服务状态填入页头。
   try {
     const health = await requestJson("/health");
     el.serviceStatus.textContent = `${health.status} | version ${health.version}`;
@@ -327,8 +402,26 @@ async function loadHealth() {
   }
 }
 
+async function loadRuntimeConfig() {
+  // 加载模型 catalog 和推荐工作区路径，但不暴露密钥。
+  try {
+    const [config, components] = await Promise.all([
+      requestJson("/api/config"),
+      requestJson("/api/components"),
+    ]);
+    state.config = config;
+    state.components = components;
+    updateModeOptions();
+    el.topK.value = String(config.top_k || 3);
+    const keyState = config.api_key_configured ? "API key configured" : "API key missing";
+    el.serviceStatus.textContent = `${el.serviceStatus.textContent} | ${keyState}`;
+  } catch (error) {
+    el.serviceStatus.textContent = `${el.serviceStatus.textContent} | ${error.message}`;
+  }
+}
+
 async function loadWorkspace() {
-  // Refresh status and documents together so the inspector reflects one workspace view.
+  // 同步刷新状态和文档列表，让界面反映同一个工作区。
   el.documentList.replaceChildren(loadingNode());
   el.chunkList.replaceChildren(emptyNode("Select a document"));
   el.reloadChunks.disabled = true;
@@ -352,7 +445,7 @@ async function loadWorkspace() {
 }
 
 async function uploadDocument(event) {
-  // Submit one PDF upload and trigger synchronous indexing through the backend API.
+  // 提交单个 PDF 上传，并通过后端 API 同步触发索引。
   event.preventDefault();
   const file = el.uploadFile.files[0];
   if (!file) {
@@ -363,7 +456,7 @@ async function uploadDocument(event) {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("tenant_id", el.tenantId.value.trim() || "default");
-  formData.append("local", el.uploadLocalMode.checked ? "true" : "false");
+  formData.append("local", selectedMode(el.uploadMode) === "local" ? "true" : "false");
   formData.append("chunk_size", String(Number(el.uploadChunkSize.value || 800)));
   formData.append("chunk_overlap", String(Number(el.uploadChunkOverlap.value || 120)));
   const indexDir = el.indexDir.value.trim();
@@ -394,7 +487,7 @@ async function uploadDocument(event) {
 }
 
 async function loadChunks() {
-  // Load chunks for the selected document; no-op until a document is selected.
+  // 加载当前选中文档的 chunk；未选择文档时不执行。
   if (!state.selectedDocumentId) {
     return;
   }
@@ -412,7 +505,7 @@ async function loadChunks() {
 }
 
 async function askQuestion(event) {
-  // Submit a question and render both the answer and diagnostic retrieval evidence.
+  // 提交问题，并渲染答案以及用于诊断的检索证据。
   event.preventDefault();
   const question = el.question.value.trim();
   if (!question) {
@@ -444,9 +537,12 @@ el.workspaceForm.addEventListener("submit", (event) => {
   event.preventDefault();
   loadWorkspace();
 });
+el.indexDir.addEventListener("change", loadWorkspace);
+el.tenantId.addEventListener("change", loadWorkspace);
 el.reloadChunks.addEventListener("click", loadChunks);
 el.uploadForm.addEventListener("submit", uploadDocument);
 el.askForm.addEventListener("submit", askQuestion);
 
-loadHealth();
-loadWorkspace();
+loadHealth()
+  .then(loadRuntimeConfig)
+  .then(loadWorkspace);

@@ -7,8 +7,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from uuid import uuid4
 
-from paper_rag.exceptions import ConfigurationError, DocumentParseError
-from paper_rag.schemas import (
+from paper_rag.domain import (
     DirectoryParseResult,
     Document,
     DocumentVersion,
@@ -17,6 +16,7 @@ from paper_rag.schemas import (
     ParseIssue,
     SkippedFile,
 )
+from paper_rag.exceptions import ConfigurationError, DocumentParseError
 
 
 def scan_source_directory(

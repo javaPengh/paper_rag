@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from paper_rag.domain import Answer, Citation, SearchResult
 from paper_rag.evaluation.dataset import EvalCase, EvalDataset, EvalEvidence
 from paper_rag.evaluation.matching import (
     document_matches,
     file_name_matches_source,
     page_ranges_overlap,
 )
-from paper_rag.schemas import Answer, Citation, SearchResult
 
 
 class CitationEvidenceMatch(BaseModel):

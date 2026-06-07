@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from paper_rag.schemas import Chunk, Document, DocumentVersion, IndexStatus
+from paper_rag.domain import Chunk, Document, DocumentVersion, IndexStatus
 
 SCHEMA_VERSION = 2
 

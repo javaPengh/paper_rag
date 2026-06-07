@@ -15,6 +15,78 @@ class HealthResponse(BaseModel):
     version: str = Field(description="已安装的 paper_rag 包版本。")
 
 
+class RuntimeConfigResponse(BaseModel):
+    """Web Inspector 可安全展示的运行时配置。"""
+
+    index_dir: Path = Field(description="未显式指定时使用的默认索引目录。")
+    upload_dir: Path = Field(description="上传 PDF 的受管本地存储目录。")
+    upload_max_bytes: int = Field(ge=0, description="当前允许的最大上传大小。")
+    top_k: int = Field(ge=1, description="默认检索 Top-k。")
+    embedding_model: str = Field(description="API embedding 模式使用的模型名称。")
+    llm_model: str = Field(description="API 问答模式使用的 LLM 模型名称。")
+    local_embedding_model: str = Field(description="本地离线 embedding 模型标识。")
+    local_answer_model: str = Field(description="本地离线答案生成器标识。")
+    api_key_configured: bool = Field(description="是否已配置 OPENAI_API_KEY。")
+    base_url_configured: bool = Field(description="是否已配置 OPENAI_BASE_URL。")
+    recommended_local_index_dir: str = Field(description="建议用于本地 hash 模式的索引目录。")
+    recommended_api_index_dir: str = Field(description="建议用于真实模型模式的索引目录。")
+
+
+class ComponentModelOptionResponse(BaseModel):
+    """API catalog 中的组件模型选项。"""
+
+    id: str = Field(description="后端组件工厂接收的模型或本地实现标识。")
+    label: str = Field(description="前端下拉框展示的模型名称。")
+    description: str = Field(description="说明该模型来源、用途或限制。")
+
+
+class ComponentConfigFieldResponse(BaseModel):
+    """API catalog 中的组件参数字段。"""
+
+    name: str = Field(description="传给组件工厂的参数键名。")
+    label: str = Field(description="前端展示的参数名称。")
+    description: str = Field(description="解释该参数如何影响组件行为。")
+    field_type: str = Field(description="前端渲染控件时使用的基础字段类型。")
+    required: bool = Field(description="该参数是否必须由调用方提供。")
+    default: str | int | float | bool | None = Field(
+        default=None,
+        description="未显式配置时的默认值。",
+    )
+    minimum: float | None = Field(default=None, description="数值字段允许的最小值。")
+    maximum: float | None = Field(default=None, description="数值字段允许的最大值。")
+
+
+class ComponentDescriptorResponse(BaseModel):
+    """API catalog 中一个可选 RAG 组件的描述。"""
+
+    id: str = Field(description="组件 registry ID。")
+    kind: str = Field(description="组件所属能力类别，例如 reader 或 embedder。")
+    label: str = Field(description="人类可读组件名称。")
+    description: str = Field(description="组件实现边界和适用场景说明。")
+    models: list[ComponentModelOptionResponse] = Field(
+        default_factory=list,
+        description="该组件支持的模型或本地实现标识。",
+    )
+    default_model: str | None = Field(
+        default=None,
+        description="该组件未显式指定模型时使用的默认模型。",
+    )
+    config_fields: list[ComponentConfigFieldResponse] = Field(
+        default_factory=list,
+        description="该组件公开给调用方的非密钥配置字段。",
+    )
+
+
+class ComponentCatalogResponse(BaseModel):
+    """Web Inspector 获取的 RAG 组件 catalog。"""
+
+    reader: list[ComponentDescriptorResponse] = Field(description="可用 Reader 组件。")
+    chunker: list[ComponentDescriptorResponse] = Field(description="可用 Chunker 组件。")
+    embedder: list[ComponentDescriptorResponse] = Field(description="可用 Embedder 组件。")
+    retriever: list[ComponentDescriptorResponse] = Field(description="可用 Retriever 组件。")
+    generator: list[ComponentDescriptorResponse] = Field(description="可用 Generator 组件。")
+
+
 class ErrorDetailResponse(BaseModel):
     """用于 HTTP 错误响应的结构化 API 错误详情。"""
 

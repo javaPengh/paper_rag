@@ -7,8 +7,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from paper_rag.domain import Answer, Citation, SearchResult
 from paper_rag.exceptions import AnswerGenerationError
-from paper_rag.schemas import Answer, Citation, SearchResult
 
 # 本地和 LLM 驱动的答案生成器共用的标准拒答文本。
 INSUFFICIENT_ANSWER = "不足以回答：当前检索到的证据不足以支持可靠答案。"

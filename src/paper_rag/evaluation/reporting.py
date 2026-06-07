@@ -30,6 +30,7 @@ def build_eval_json_report(result: EvalRunResult) -> dict[str, Any]:
             "index_dir": str(result.index_dir),
             "tenant_id": result.tenant_id,
             "top_k": result.top_k,
+            "rag_config": result.rag_config.model_dump(mode="json"),
             "index": {
                 "status": result.index_result.status.status,
                 "document_count": result.index_result.status.document_count,

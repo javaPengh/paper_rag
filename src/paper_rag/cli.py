@@ -6,8 +6,10 @@ from typing import Annotated
 import typer
 
 from paper_rag import __version__
+from paper_rag.components import ComponentRegistry, get_component_registry
+from paper_rag.components.interfaces import Embedder, Generator
 from paper_rag.config import load_settings
-from paper_rag.embeddings import HashEmbeddingClient, OpenAIEmbeddingClient
+from paper_rag.domain import Document
 from paper_rag.evaluation import (
     EvalRunConfig,
     format_eval_run_result,
@@ -16,12 +18,8 @@ from paper_rag.evaluation import (
 )
 from paper_rag.exceptions import PaperRagError
 from paper_rag.indexing import LocalPaperIndex, build_index_from_directory
-from paper_rag.indexing.chunking import ChunkingConfig
 from paper_rag.logging import configure_logging
-from paper_rag.qa import ExtractiveAnswerGenerator, OpenAIAnswerGenerator, format_answer
-from paper_rag.qa.answering import OpenAIChatClient
-from paper_rag.retrieval import Retriever
-from paper_rag.schemas import Document
+from paper_rag.qa import format_answer
 
 app = typer.Typer(
     name="paper-rag",
@@ -91,10 +89,18 @@ def index(
 ) -> None:
     """导入 PDF 目录并构建或更新本地索引。"""
     settings = load_settings()
+    registry = get_component_registry(settings)
     target_index_dir = index_dir or settings.index_dir
     embedding_client = _make_embedding_client(
         embedding_model=embedding_model,
         local=local,
+        registry=registry,
+    )
+    chunker = registry.create_chunker(
+        parameters={
+            "chunk_size": chunk_size,
+            "chunk_overlap": chunk_overlap,
+        }
     )
 
     try:
@@ -103,7 +109,8 @@ def index(
             index_dir=target_index_dir,
             embedding_client=embedding_client,
             tenant_id=tenant_id,
-            chunking_config=ChunkingConfig(chunk_size=chunk_size, chunk_overlap=chunk_overlap),
+            reader=registry.create_reader(parameters={"recursive": recursive}),
+            chunker=chunker,
             batch_size=batch_size,
             recursive=recursive,
         )
@@ -163,6 +170,7 @@ def ask(
 ) -> None:
     """向现有本地索引提问。"""
     settings = load_settings()
+    registry = get_component_registry(settings)
     target_index_dir = index_dir or settings.index_dir
     effective_top_k = top_k if top_k is not None else settings.top_k
 
@@ -174,11 +182,13 @@ def ask(
     embedding_client = _make_embedding_client(
         embedding_model=embedding_model or (status.embedding_model if status else None),
         local=local,
+        registry=registry,
     )
-    retriever = Retriever(
+    retriever = registry.create_retriever(
         local_index=local_index,
         embedding_client=embedding_client,
         tenant_id=tenant_id,
+        parameters={"top_k": effective_top_k},
     )
 
     try:
@@ -187,6 +197,7 @@ def ask(
             llm_model=llm_model or settings.llm_model,
             local=local,
             min_score=min_score,
+            registry=registry,
         ).generate(question, results)
     except PaperRagError as exc:
         raise typer.BadParameter(str(exc)) from exc
@@ -257,16 +268,28 @@ def eval_command(
 ) -> None:
     """运行 MVP 评测集，执行本地索引、检索和答案生成。"""
     settings = load_settings()
+    registry = get_component_registry(settings)
     target_index_dir = index_dir or Path(".paper_rag/eval_index")
     effective_top_k = top_k if top_k is not None else settings.top_k
+    rag_config = registry.build_pipeline_config(
+        local=local,
+        embedding_model=embedding_model,
+        llm_model=llm_model or settings.llm_model,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        top_k=effective_top_k,
+        min_score=min_score,
+    )
     embedding_client = _make_embedding_client(
         embedding_model=embedding_model,
         local=local,
+        registry=registry,
     )
     answer_generator = _make_answer_generator(
         llm_model=llm_model or settings.llm_model,
         local=local,
         min_score=min_score,
+        registry=registry,
     )
 
     try:
@@ -279,6 +302,7 @@ def eval_command(
                 top_k=effective_top_k,
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap,
+                rag_config=rag_config,
             ),
             embedding_client=embedding_client,
             answer_generator=answer_generator,
@@ -418,31 +442,38 @@ def serve(
     )
 
 
-def _make_embedding_client(*, embedding_model: str | None, local: bool):
+def _make_embedding_client(
+    *,
+    embedding_model: str | None,
+    local: bool,
+    registry: ComponentRegistry | None = None,
+) -> Embedder:
     """根据 CLI 标志和环境设置创建 embedding 客户端。"""
     settings = load_settings()
+    active_registry = registry or get_component_registry(settings)
     model_name = embedding_model or ("hash-embedding-v1" if local else settings.embedding_model)
-    if local or model_name.startswith("hash-"):
-        return HashEmbeddingClient(model_name=model_name)
-    return OpenAIEmbeddingClient(
+    component_id = active_registry.resolve_embedder_id(local=local, model_name=model_name)
+    return active_registry.create_embedder(
+        component_id,
         model_name=model_name,
-        api_key=settings.openai_api_key,
-        base_url=settings.openai_base_url,
     )
 
 
-def _make_answer_generator(*, llm_model: str, local: bool, min_score: float):
+def _make_answer_generator(
+    *,
+    llm_model: str,
+    local: bool,
+    min_score: float,
+    registry: ComponentRegistry | None = None,
+) -> Generator:
     """根据 CLI 标志和环境设置创建答案生成器。"""
     settings = load_settings()
-    if local:
-        return ExtractiveAnswerGenerator(min_score=min_score)
-    return OpenAIAnswerGenerator(
-        chat_client=OpenAIChatClient(
-            model_name=llm_model,
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
-        ),
-        min_score=min_score,
+    active_registry = registry or get_component_registry(settings)
+    component_id = active_registry.resolve_generator_id(local=local)
+    return active_registry.create_generator(
+        component_id,
+        model_name=None if local else llm_model,
+        parameters={"min_score": min_score},
     )
 
 

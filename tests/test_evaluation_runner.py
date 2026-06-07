@@ -125,6 +125,12 @@ def test_cli_eval_runs_local_evaluation(tmp_path: Path) -> None:
     assert report["summary"]["citation"]["hit_count"] == 1
     assert report["summary"]["refusal"]["success_count"] == 1
     assert report["summary"]["failed_case_ids"] == {"retrieval": [], "answer": []}
+    assert report["run"]["rag_config"]["reader"]["id"] == "pdf_reader"
+    assert report["run"]["rag_config"]["chunker"]["id"] == "token_window_chunker"
+    assert report["run"]["rag_config"]["embedder"]["id"] == "hash_embedder"
+    assert report["run"]["rag_config"]["retriever"]["id"] == "vector_retriever"
+    assert report["run"]["rag_config"]["generator"]["id"] == "extractive_generator"
+    assert report["run"]["rag_config"]["chunker"]["parameters"]["chunk_size"] == 120
     assert report["cases"][0]["id"] == "case_answerable"
     assert report["cases"][0]["retrieval_state"] == "hit"
     assert report["cases"][0]["answer_state"] == "pass"

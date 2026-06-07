@@ -82,10 +82,66 @@ def test_api_serves_inspector_upload_ui() -> None:
 
     page = client.get("/")
     assert page.status_code == 200
+    assert 'id="index-dir"' in page.text
     assert 'id="upload-form"' in page.text
     assert 'id="upload-file"' in page.text
+    assert 'id="upload-mode"' in page.text
     assert 'id="upload-chunk-size"' in page.text
+    assert 'id="ask-mode"' in page.text
     assert 'src="/static/inspector.js"' in page.text
+
+
+def test_api_config_exposes_model_names_without_secret(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret-key")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("PAPER_RAG_EMBEDDING_MODEL", "embedding-model")
+    monkeypatch.setenv("PAPER_RAG_LLM_MODEL", "llm-model")
+
+    client = TestClient(create_app())
+    response = client.get("/api/config")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["embedding_model"] == "embedding-model"
+    assert payload["llm_model"] == "llm-model"
+    assert payload["api_key_configured"] is True
+    assert payload["base_url_configured"] is True
+    assert payload["recommended_local_index_dir"] == ".paper_rag/manual_index"
+    assert payload["recommended_api_index_dir"] == ".paper_rag/api_index"
+    assert "secret-key" not in response.text
+
+
+def test_api_components_exposes_catalog_without_secret(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """确认组件 catalog 覆盖五类组件，且不会暴露 OpenAI 密钥。"""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("OPENAI_API_KEY", "secret-key")
+    monkeypatch.setenv("PAPER_RAG_EMBEDDING_MODEL", "embedding-model")
+    monkeypatch.setenv("PAPER_RAG_LLM_MODEL", "llm-model")
+
+    client = TestClient(create_app())
+    response = client.get("/api/components")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert set(payload) == {"reader", "chunker", "embedder", "retriever", "generator"}
+    assert {item["id"] for item in payload["embedder"]} == {
+        "hash_embedder",
+        "openai_embedder",
+    }
+    assert {item["id"] for item in payload["generator"]} == {
+        "extractive_generator",
+        "openai_generator",
+    }
+    openai_embedder = next(item for item in payload["embedder"] if item["id"] == "openai_embedder")
+    assert openai_embedder["default_model"] == "embedding-model"
+    assert "secret-key" not in response.text
 
 
 def test_api_uploads_pdf_and_triggers_local_indexing(

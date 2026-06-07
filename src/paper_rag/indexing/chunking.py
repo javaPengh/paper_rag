@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TypeAlias
 
-from paper_rag.schemas import Chunk, Page
+from paper_rag.domain import Chunk, Page
 
 # 当可用 tiktoken 时，token 是整数；否则在回退分词器中它是一个单词字符串。
 Token: TypeAlias = int | str

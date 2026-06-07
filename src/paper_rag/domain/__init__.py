@@ -1,7 +1,7 @@
-"""兼容旧导入路径的领域模型 re-export。
+"""Paper RAG 的核心领域模型边界。
 
-新代码应优先从 `paper_rag.domain` 导入核心业务模型；本模块保留给既有 CLI、
-测试和外部调用方，避免组件边界改造时一次性破坏旧路径。
+该包只承载文档、页面、chunk、引用、答案和索引状态等稳定业务类型，
+避免 API DTO、评测数据结构和组件配置类型混在同一个巨大模块里。
 """
 
 from paper_rag.domain.models import (

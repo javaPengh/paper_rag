@@ -4,15 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from paper_rag.documents.parser import (
-    new_document_id,
-    parse_pdf,
-    scan_source_directory,
-)
-from paper_rag.embeddings import EmbeddingClient
-from paper_rag.indexing.chunking import ChunkingConfig, chunk_pages
-from paper_rag.indexing.local_index import LocalPaperIndex
-from paper_rag.schemas import (
+from paper_rag.components.chunking.token_window_chunker import TokenWindowChunker
+from paper_rag.components.interfaces import Chunker, Embedder, Reader
+from paper_rag.components.reading.pdf_reader import PdfReader
+from paper_rag.documents.parser import new_document_id
+from paper_rag.domain import (
     Chunk,
     Document,
     DocumentVersion,
@@ -22,21 +18,29 @@ from paper_rag.schemas import (
     ParseIssue,
     utc_now,
 )
+from paper_rag.indexing.chunking import ChunkingConfig
+from paper_rag.indexing.local_index import LocalPaperIndex
 
 
 def build_index_from_directory(
     source_dir: Path,
     *,
     index_dir: Path,
-    embedding_client: EmbeddingClient,
+    embedding_client: Embedder,
     tenant_id: str = "default",
     chunking_config: ChunkingConfig | None = None,
+    reader: Reader | None = None,
+    chunker: Chunker | None = None,
     batch_size: int = 64,
     recursive: bool = True,
 ) -> IndexBuildResult:
     """解析变更的 PDF，生成 chunk embedding，并把它们持久化到本地索引。"""
     local_index = LocalPaperIndex(index_dir)
-    pdf_paths, skipped_files = scan_source_directory(source_dir, recursive=recursive)
+    active_reader = reader or PdfReader()
+    active_chunker = chunker or TokenWindowChunker(
+        config=chunking_config or ChunkingConfig(),
+    )
+    pdf_paths, skipped_files = active_reader.scan_directory(source_dir, recursive=recursive)
 
     indexed_documents: list[Document] = []
     reindexed_documents: list[Document] = []
@@ -57,7 +61,7 @@ def build_index_from_directory(
             )
 
             if existing_source_document is not None:
-                parsed_pdf = parse_pdf(
+                parsed_pdf = active_reader.read_pdf(
                     resolved_pdf_path,
                     tenant_id=tenant_id,
                     document_id=existing_source_document.id,
@@ -86,7 +90,7 @@ def build_index_from_directory(
                 reindexed_documents.append(parsed_pdf.document)
             else:
                 document_id = new_document_id()
-                parsed_pdf = parse_pdf(
+                parsed_pdf = active_reader.read_pdf(
                     resolved_pdf_path,
                     tenant_id=tenant_id,
                     document_id=document_id,
@@ -115,10 +119,7 @@ def build_index_from_directory(
 
                 indexed_documents.append(parsed_pdf.document)
 
-            document_chunks = chunk_pages(
-                parsed_pdf.pages,
-                config=chunking_config or ChunkingConfig(),
-            )
+            document_chunks = active_chunker.chunk(parsed_pdf.pages)
         except Exception as exc:
             errors.append(ParseIssue(source_path=resolved_pdf_path, message=str(exc)))
             continue
@@ -180,7 +181,7 @@ def _stamp_chunk_tenant(chunks: list[Chunk], tenant_id: str) -> list[Chunk]:
 
 def _embed_chunks(
     chunks: list[Chunk],
-    embedding_client: EmbeddingClient,
+    embedding_client: Embedder,
     *,
     batch_size: int,
 ) -> list[list[float]]:

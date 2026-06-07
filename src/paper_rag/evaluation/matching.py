@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from paper_rag.domain import Document
 from paper_rag.evaluation.dataset import EvalDataset
-from paper_rag.schemas import Document
 
 
 def document_matches(dataset: EvalDataset, doc_key: str, document: Document | None) -> bool:

@@ -15,6 +15,10 @@ from paper_rag.api.schemas import (
     AskResponse,
     ChunkResponse,
     CitationResponse,
+    ComponentCatalogResponse,
+    ComponentConfigFieldResponse,
+    ComponentDescriptorResponse,
+    ComponentModelOptionResponse,
     DocumentSummaryResponse,
     ErrorDetailResponse,
     EvidenceResponse,
@@ -22,17 +26,15 @@ from paper_rag.api.schemas import (
     HealthResponse,
     IndexingSummaryResponse,
     IndexStatusResponse,
+    RuntimeConfigResponse,
     StoredUploadResponse,
     UploadIndexResponse,
 )
+from paper_rag.components import ComponentRegistry, get_component_registry
+from paper_rag.components.interfaces import Embedder, Generator
+from paper_rag.components.types import ComponentDescriptor, ComponentKind
 from paper_rag.config import load_settings
-from paper_rag.embeddings import HashEmbeddingClient, OpenAIEmbeddingClient
-from paper_rag.exceptions import DocumentUploadError, PaperRagError
-from paper_rag.indexing import ChunkingConfig, LocalPaperIndex, build_index_from_directory
-from paper_rag.qa import ExtractiveAnswerGenerator, OpenAIAnswerGenerator
-from paper_rag.qa.answering import OpenAIChatClient
-from paper_rag.retrieval import Retriever
-from paper_rag.schemas import (
+from paper_rag.domain import (
     Chunk,
     Citation,
     Document,
@@ -41,6 +43,8 @@ from paper_rag.schemas import (
     SearchResult,
     SkippedFile,
 )
+from paper_rag.exceptions import DocumentUploadError, PaperRagError
+from paper_rag.indexing import LocalPaperIndex, build_index_from_directory
 from paper_rag.storage import LocalUploadStorage, StoredUpload
 
 
@@ -64,6 +68,33 @@ def create_app() -> FastAPI:
     def health() -> HealthResponse:
         """为 Inspector 界面和冒烟测试返回一个轻量就绪信号。"""
         return HealthResponse(status="ok", version=__version__)
+
+    @app.get("/api/config", response_model=RuntimeConfigResponse)
+    def runtime_config() -> RuntimeConfigResponse:
+        """返回前端可展示的运行时配置，不包含任何密钥明文。"""
+        settings = load_settings()
+        registry = get_component_registry(settings)
+        return RuntimeConfigResponse(
+            index_dir=settings.index_dir,
+            upload_dir=settings.upload_dir,
+            upload_max_bytes=settings.upload_max_bytes,
+            top_k=settings.top_k,
+            embedding_model=_default_model(registry, "openai_embedder") or settings.embedding_model,
+            llm_model=_default_model(registry, "openai_generator") or settings.llm_model,
+            local_embedding_model=_default_model(registry, "hash_embedder")
+            or "hash-embedding-v1",
+            local_answer_model=_default_model(registry, "extractive_generator")
+            or "extractive-local-v1",
+            api_key_configured=bool(settings.openai_api_key),
+            base_url_configured=bool(settings.openai_base_url),
+            recommended_local_index_dir=".paper_rag/manual_index",
+            recommended_api_index_dir=".paper_rag/api_index",
+        )
+
+    @app.get("/api/components", response_model=ComponentCatalogResponse)
+    def components() -> ComponentCatalogResponse:
+        """返回前端可消费的 RAG 组件 catalog，不包含任何密钥或密钥派生值。"""
+        return _component_catalog_response(get_component_registry())
 
     @app.get("/api/index/status", response_model=IndexStatusResponse)
     def index_status(
@@ -144,6 +175,7 @@ def create_app() -> FastAPI:
     ) -> UploadIndexResponse:
         """保存一个上传的 PDF，并同步触发本地索引流水线。"""
         settings = load_settings()
+        registry = get_component_registry(settings)
         file_name = file.filename or ""
         content = await file.read()
         try:
@@ -162,11 +194,15 @@ def create_app() -> FastAPI:
                 embedding_client=_make_embedding_client(
                     embedding_model=embedding_model,
                     local=local,
+                    registry=registry,
                 ),
                 tenant_id=tenant_id,
-                chunking_config=ChunkingConfig(
-                    chunk_size=chunk_size,
-                    chunk_overlap=chunk_overlap,
+                reader=registry.create_reader(parameters={"recursive": False}),
+                chunker=registry.create_chunker(
+                    parameters={
+                        "chunk_size": chunk_size,
+                        "chunk_overlap": chunk_overlap,
+                    }
                 ),
                 recursive=False,
             )
@@ -189,6 +225,7 @@ def create_app() -> FastAPI:
     def ask(request: AskRequest) -> AskResponse:
         """回答一个问题，并返回引用和原始检索证据。"""
         settings = load_settings()
+        registry = get_component_registry(settings)
         local_index = LocalPaperIndex(request.index_dir or settings.index_dir)
         status = local_index.store.load_status()
         local_mode = request.local
@@ -198,11 +235,13 @@ def create_app() -> FastAPI:
         embedding_client = _make_embedding_client(
             embedding_model=request.embedding_model or (status.embedding_model if status else None),
             local=local_mode,
+            registry=registry,
         )
-        retriever = Retriever(
+        retriever = registry.create_retriever(
             local_index=local_index,
             embedding_client=embedding_client,
             tenant_id=request.tenant_id,
+            parameters={"top_k": request.top_k if request.top_k is not None else settings.top_k},
         )
         try:
             results = retriever.retrieve(
@@ -213,6 +252,7 @@ def create_app() -> FastAPI:
                 llm_model=request.llm_model or settings.llm_model,
                 local=local_mode,
                 min_score=request.min_score,
+                registry=registry,
             ).generate(request.question, results)
         except PaperRagError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -279,32 +319,108 @@ def _index_status_response(
     )
 
 
-def _make_embedding_client(*, embedding_model: str | None, local: bool):
+def _make_embedding_client(
+    *,
+    embedding_model: str | None,
+    local: bool,
+    registry: ComponentRegistry | None = None,
+) -> Embedder:
     """根据 API 参数和设置创建所需的 embedding 边界。"""
     settings = load_settings()
+    active_registry = registry or get_component_registry(settings)
     model_name = embedding_model or ("hash-embedding-v1" if local else settings.embedding_model)
-    if local or model_name.startswith("hash-"):
-        return HashEmbeddingClient(model_name=model_name)
-    return OpenAIEmbeddingClient(
+    component_id = active_registry.resolve_embedder_id(local=local, model_name=model_name)
+    return active_registry.create_embedder(
+        component_id,
         model_name=model_name,
-        api_key=settings.openai_api_key,
-        base_url=settings.openai_base_url,
     )
 
 
-def _make_answer_generator(*, llm_model: str, local: bool, min_score: float):
+def _make_answer_generator(
+    *,
+    llm_model: str,
+    local: bool,
+    min_score: float,
+    registry: ComponentRegistry | None = None,
+) -> Generator:
     """创建本地抽取式生成器或配置好的 LLM 生成器。"""
     settings = load_settings()
-    if local:
-        return ExtractiveAnswerGenerator(min_score=min_score)
-    return OpenAIAnswerGenerator(
-        chat_client=OpenAIChatClient(
-            model_name=llm_model,
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
-        ),
-        min_score=min_score,
+    active_registry = registry or get_component_registry(settings)
+    component_id = active_registry.resolve_generator_id(local=local)
+    return active_registry.create_generator(
+        component_id,
+        model_name=None if local else llm_model,
+        parameters={"min_score": min_score},
     )
+
+
+def _component_catalog_response(registry: ComponentRegistry) -> ComponentCatalogResponse:
+    """把 registry catalog 转换为 API DTO 分组响应。"""
+    grouped = registry.grouped_descriptors()
+    return ComponentCatalogResponse(
+        reader=[
+            _component_descriptor_response(descriptor)
+            for descriptor in grouped[ComponentKind.READER]
+        ],
+        chunker=[
+            _component_descriptor_response(descriptor)
+            for descriptor in grouped[ComponentKind.CHUNKER]
+        ],
+        embedder=[
+            _component_descriptor_response(descriptor)
+            for descriptor in grouped[ComponentKind.EMBEDDER]
+        ],
+        retriever=[
+            _component_descriptor_response(descriptor)
+            for descriptor in grouped[ComponentKind.RETRIEVER]
+        ],
+        generator=[
+            _component_descriptor_response(descriptor)
+            for descriptor in grouped[ComponentKind.GENERATOR]
+        ],
+    )
+
+
+def _component_descriptor_response(
+    descriptor: ComponentDescriptor,
+) -> ComponentDescriptorResponse:
+    """把内部组件描述转换成不含密钥的 API descriptor。"""
+    return ComponentDescriptorResponse(
+        id=descriptor.id,
+        kind=descriptor.kind.value,
+        label=descriptor.label,
+        description=descriptor.description,
+        models=[
+            ComponentModelOptionResponse(
+                id=model.id,
+                label=model.label,
+                description=model.description,
+            )
+            for model in descriptor.models
+        ],
+        default_model=descriptor.default_model,
+        config_fields=[
+            ComponentConfigFieldResponse(
+                name=field.name,
+                label=field.label,
+                description=field.description,
+                field_type=field.field_type.value,
+                required=field.required,
+                default=field.default,
+                minimum=field.minimum,
+                maximum=field.maximum,
+            )
+            for field in descriptor.config_fields
+        ],
+    )
+
+
+def _default_model(registry: ComponentRegistry, component_id: str) -> str | None:
+    """读取 registry descriptor 中的默认模型，未知组件返回 None。"""
+    try:
+        return registry.get_descriptor(component_id).default_model
+    except ValueError:
+        return None
 
 
 def _document_summary(

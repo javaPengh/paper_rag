@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from paper_rag.domain import Chunk, Document, DocumentVersion, SearchResult
 from paper_rag.indexing.metadata_store import MetadataStore
 from paper_rag.indexing.vector_store import ChromaVectorStore
-from paper_rag.schemas import Chunk, Document, DocumentVersion, SearchResult
 
 
 class LocalPaperIndex:

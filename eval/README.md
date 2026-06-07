@@ -89,11 +89,25 @@ paper-rag eval eval\datasets\golden.jsonl `
   --report-json .paper_rag\reports\eval_report.json
 ```
 
-如果要使用 API embedding 和 LLM，将 `--local` 改成 `--api`，并先配置相关环境变量：
+如果要使用 API embedding 和 LLM，将 `--local` 改成 `--api`，并先复制
+`.env.example` 为 `.env` 填写 API key：
 
 ```powershell
-$env:OPENAI_API_KEY="your-api-key"
-paper-rag eval eval\datasets\golden.jsonl --source-dir eval\papers --index-dir .paper_rag\eval_index --tenant-id eval --api --report-json .paper_rag\reports\eval_report_api.json
+Copy-Item .env.example .env
+```
+
+真实模型评测建议使用独立索引目录，避免和本地 hash embedding 索引混用：
+
+```powershell
+paper-rag eval eval\datasets\golden.jsonl `
+  --source-dir eval\papers `
+  --index-dir .paper_rag\eval_index_api `
+  --tenant-id eval `
+  --api `
+  --top-k 3 `
+  --chunk-size 800 `
+  --chunk-overlap 120 `
+  --report-json .paper_rag\reports\eval_report_api.json
 ```
 
 ## JSON Report 字段说明
@@ -105,7 +119,7 @@ report 用于后续回归对比、人工审核和脚本分析。
 
 - `schema_version`：报告结构版本。后续字段结构发生不兼容变化时递增。
 - `dataset`：本次评测使用的数据集路径、文档映射路径和样本数。
-- `run`：本次运行的索引目录、语料目录、租户、Top-k 和索引状态。
+- `run`：本次运行的索引目录、语料目录、租户、Top-k、RAG 组件配置和索引状态。
 - `summary`：整体指标汇总，是每次优化后最先看的区域。
 - `cases`：逐 case 明细，用来解释某个指标为什么通过或失败。
 
@@ -149,6 +163,17 @@ report 用于后续回归对比、人工审核和脚本分析。
 - `case_count`：应当拒答的不可回答样本数。
 - `success_count`：正确拒答且没有 citation 的样本数。
 - `success_rate`：`success_count / case_count`。
+
+`run.rag_config` 常用字段：
+
+- `reader.id`：本次解析源文档使用的 Reader 组件。
+- `chunker.id`：本次切分页面文本使用的 Chunker 组件。
+- `chunker.parameters.chunk_size`：构建索引时使用的 chunk token 窗口大小。
+- `chunker.parameters.chunk_overlap`：相邻 chunk 之间重复的 token 数。
+- `embedder.id` / `embedder.model`：文档和问题 embedding 使用的组件与模型。
+- `retriever.id` / `retriever.parameters.top_k`：证据召回使用的组件与 Top-k。
+- `generator.id` / `generator.model`：答案生成使用的组件与模型。
+- `generator.parameters.min_score`：证据进入答案生成前的最低检索分数。
 
 `cases[]` 常用字段：
 

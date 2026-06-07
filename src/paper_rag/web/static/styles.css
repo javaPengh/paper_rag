@@ -1,4 +1,4 @@
-/* Styling for the local Web Inspector acceptance UI, not the future product app. */
+/* 本地 Web Inspector 验收界面的样式，不代表未来正式产品界面。 */
 
 :root {
   color-scheme: light;
@@ -38,6 +38,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -64,6 +65,7 @@ button:disabled {
 }
 
 input,
+select,
 textarea {
   width: 100%;
   border: 1px solid var(--border);
@@ -112,7 +114,7 @@ label span {
 
 .workspace-form {
   display: grid;
-  grid-template-columns: minmax(240px, 420px) minmax(120px, 180px) auto;
+  grid-template-columns: minmax(240px, 440px) minmax(120px, 180px);
   gap: 12px;
   align-items: end;
 }
@@ -340,7 +342,7 @@ label span {
 
 .ask-controls {
   display: grid;
-  grid-template-columns: minmax(90px, 130px) auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(90px, 130px) auto;
   gap: 10px;
   align-items: end;
   justify-content: end;

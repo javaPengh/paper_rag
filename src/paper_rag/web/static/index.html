@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Static Web Inspector shell for local RAG MVP acceptance and debugging. -->
+<!-- 用于本地 RAG MVP 验收和调试的静态 Web Inspector 外壳。 -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -20,15 +20,20 @@
             id="index-dir"
             name="indexDir"
             type="text"
-            placeholder=".paper_rag/manual_index"
+            value=".paper_rag/manual_index"
+            list="index-dir-options"
+            placeholder=".paper_rag/api_index"
             autocomplete="off"
           />
+          <datalist id="index-dir-options">
+            <option value=".paper_rag/manual_index"></option>
+            <option value=".paper_rag/api_index"></option>
+          </datalist>
         </label>
         <label>
           <span>Tenant</span>
           <input id="tenant-id" name="tenantId" type="text" value="default" autocomplete="off" />
         </label>
-        <button type="submit">Refresh</button>
       </form>
     </header>
 
@@ -42,15 +47,17 @@
 
         <div class="panel-heading compact">
           <h2>Upload</h2>
-          <label class="inline-control">
-            <input id="upload-local-mode" type="checkbox" checked />
-            <span>Local</span>
-          </label>
         </div>
         <form id="upload-form" class="upload-form">
           <label>
             <span>PDF</span>
             <input id="upload-file" name="file" type="file" accept="application/pdf,.pdf" />
+          </label>
+          <label>
+            <span>Embedding mode</span>
+            <select id="upload-mode">
+              <option value="local" selected>Loading embedding modes...</option>
+            </select>
           </label>
           <div class="upload-controls">
             <label>
@@ -87,10 +94,6 @@
       <section class="panel qa-panel" aria-labelledby="ask-heading">
         <div class="panel-heading">
           <h2 id="ask-heading">Ask</h2>
-          <label class="inline-control">
-            <input id="local-mode" type="checkbox" checked />
-            <span>Local</span>
-          </label>
         </div>
         <form id="ask-form" class="ask-form">
           <textarea
@@ -100,6 +103,12 @@
             placeholder="What does this knowledge base say?"
           ></textarea>
           <div class="ask-controls">
+            <label>
+              <span>Mode</span>
+              <select id="ask-mode">
+                <option value="local" selected>Loading answer modes...</option>
+              </select>
+            </label>
             <label>
               <span>Top K</span>
               <input id="top-k" type="number" min="1" value="3" />

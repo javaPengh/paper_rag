@@ -13,6 +13,9 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from paper_rag.components import RagPipelineConfig, get_component_registry
+from paper_rag.components.interfaces import Retriever
+from paper_rag.domain import Answer, IndexBuildResult, SearchResult
 from paper_rag.embeddings import EmbeddingClient
 from paper_rag.evaluation.answer_metrics import (
     AnswerCaseMetrics,
@@ -29,8 +32,6 @@ from paper_rag.evaluation.retrieval_metrics import (
 )
 from paper_rag.exceptions import EvaluationDatasetError, PaperRagError
 from paper_rag.indexing import ChunkingConfig, LocalPaperIndex, build_index_from_directory
-from paper_rag.retrieval import Retriever
-from paper_rag.schemas import Answer, IndexBuildResult, SearchResult
 
 
 class AnswerGenerator(Protocol):
@@ -78,6 +79,10 @@ class EvalRunConfig(BaseModel):
     recursive: bool = Field(
         default=True,
         description="扫描评测 source_dir 时是否递归查找 PDF。",
+    )
+    rag_config: RagPipelineConfig | None = Field(
+        default=None,
+        description="本次评测显式记录的 Reader/Chunker/Embedder/Retriever/Generator 配置。",
     )
 
 
@@ -143,6 +148,9 @@ class EvalRunResult(BaseModel):
     answer_summary: AnswerMetricSummary = Field(
         description="本次运行的 answer、citation 和 refusal 指标汇总。",
     )
+    rag_config: RagPipelineConfig = Field(
+        description="本次运行实际使用的 RAG 组件配置快照。",
+    )
     case_results: list[EvalCaseRunResult] = Field(
         default_factory=list,
         description="每条 eval case 的 retrieval 与 answer generation 运行结果。",
@@ -175,6 +183,20 @@ def run_evaluation(
     dataset = load_eval_dataset(dataset_path, project_root=project_root)
     source_dir = _resolve_source_dir(dataset, config.source_dir)
     index_dir = _resolve_path(config.index_dir, project_root)
+    registry = get_component_registry()
+    rag_config = config.rag_config or _infer_rag_config(
+        config=config,
+        embedding_client=embedding_client,
+        answer_generator=answer_generator,
+    )
+    reader = registry.create_reader(
+        rag_config.reader.id,
+        parameters=rag_config.reader.parameters,
+    )
+    chunker = registry.create_chunker(
+        rag_config.chunker.id,
+        parameters=rag_config.chunker.parameters,
+    )
 
     index_result = build_index_from_directory(
         source_dir,
@@ -185,14 +207,18 @@ def run_evaluation(
             chunk_size=config.chunk_size,
             chunk_overlap=config.chunk_overlap,
         ),
+        reader=reader,
+        chunker=chunker,
         recursive=config.recursive,
     )
 
     local_index = LocalPaperIndex(index_dir)
-    retriever = Retriever(
+    retriever = registry.create_retriever(
+        rag_config.retriever.id,
         local_index=local_index,
         embedding_client=embedding_client,
         tenant_id=config.tenant_id,
+        parameters=rag_config.retriever.parameters,
     )
     case_results = [
         _run_case(
@@ -229,6 +255,7 @@ def run_evaluation(
         index_result=index_result,
         retrieval_summary=retrieval_summary,
         answer_summary=answer_summary,
+        rag_config=rag_config,
         case_results=case_results,
     )
 
@@ -343,6 +370,48 @@ def format_eval_run_result(result: EvalRunResult) -> str:
             lines.append(f"  答案: {preview}")
 
     return "\n".join(lines)
+
+
+def _infer_rag_config(
+    *,
+    config: EvalRunConfig,
+    embedding_client: EmbeddingClient,
+    answer_generator: AnswerGenerator,
+) -> RagPipelineConfig:
+    """从旧调用方式传入的组件实例推断可记录的 RAG 配置。"""
+    registry = get_component_registry()
+    embedding_model = getattr(embedding_client, "model_name", None)
+    generator_model = _answer_generator_model(answer_generator)
+    local = bool(
+        (embedding_model and embedding_model.startswith("hash-"))
+        or generator_model == "extractive-local-v1"
+    )
+    return registry.build_pipeline_config(
+        local=local,
+        embedding_model=embedding_model,
+        llm_model=None if local else generator_model,
+        chunk_size=config.chunk_size,
+        chunk_overlap=config.chunk_overlap,
+        recursive=config.recursive,
+        top_k=config.top_k,
+        min_score=_answer_generator_min_score(answer_generator),
+    )
+
+
+def _answer_generator_model(answer_generator: AnswerGenerator) -> str | None:
+    """读取本地或 OpenAI 兼容答案生成器的模型名，用于评测报告。"""
+    direct_model = getattr(answer_generator, "model_name", None)
+    if isinstance(direct_model, str):
+        return direct_model
+    chat_client = getattr(answer_generator, "chat_client", None)
+    chat_model = getattr(chat_client, "model_name", None)
+    return chat_model if isinstance(chat_model, str) else None
+
+
+def _answer_generator_min_score(answer_generator: AnswerGenerator) -> float:
+    """读取答案生成器使用的证据分数阈值，缺省时保持旧默认值。"""
+    min_score = getattr(answer_generator, "min_score", 0.05)
+    return float(min_score)
 
 
 def _run_case(

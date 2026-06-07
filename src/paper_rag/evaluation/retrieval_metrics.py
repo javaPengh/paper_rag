@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from paper_rag.domain import SearchResult
 from paper_rag.evaluation.dataset import EvalCase, EvalDataset, EvalEvidence
 from paper_rag.evaluation.matching import document_matches, page_ranges_overlap
-from paper_rag.schemas import SearchResult
 
 
 class RetrievalEvidenceMatch(BaseModel):

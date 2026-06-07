@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from paper_rag.domain import Chunk, Document
 from paper_rag.exceptions import ConfigurationError, IndexOperationError
-from paper_rag.schemas import Chunk, Document
 
 
 @dataclass(frozen=True)
