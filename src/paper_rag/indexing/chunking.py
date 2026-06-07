@@ -20,15 +20,15 @@ class ChunkingConfig:
 
     chunk_size: int = field(
         default=800,
-        metadata={"description": "Maximum tokenizer units allowed in one chunk."},
+        metadata={"description": "单个 chunk 允许的最大 tokenizer 单元数。"},
     )
     chunk_overlap: int = field(
         default=120,
-        metadata={"description": "Tokenizer units repeated between adjacent chunks."},
+        metadata={"description": "相邻 chunk 之间重复的 tokenizer 单元数。"},
     )
     encoding_name: str = field(
         default="cl100k_base",
-        metadata={"description": "tiktoken encoding used for model-aware chunk boundaries."},
+        metadata={"description": "用于模型感知分块边界的 tiktoken 编码。"},
     )
 
     def __post_init__(self) -> None:

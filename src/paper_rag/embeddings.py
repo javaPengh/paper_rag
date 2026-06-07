@@ -29,23 +29,23 @@ class OpenAIEmbeddingClient:
 
     model_name: str = field(
         default="text-embedding-3-small",
-        metadata={"description": "OpenAI-compatible embedding model name."},
+        metadata={"description": "OpenAI 兼容 embedding 模型名。"},
     )
     api_key: str | None = field(
         default=None,
-        metadata={"description": "API key for the embedding provider."},
+        metadata={"description": "embedding 提供方的 API 密钥。"},
     )
     base_url: str | None = field(
         default=None,
-        metadata={"description": "Optional OpenAI-compatible embedding endpoint override."},
+        metadata={"description": "可选的 OpenAI 兼容 embedding 端点覆盖。"},
     )
     max_retries: int = field(
         default=2,
-        metadata={"description": "Retry count for transient embedding provider failures."},
+        metadata={"description": "处理临时 embedding 提供方失败时的重试次数。"},
     )
     retry_delay_seconds: float = field(
         default=1.0,
-        metadata={"description": "Base delay between embedding retries in seconds."},
+        metadata={"description": "embedding 重试之间的基础延迟（秒）。"},
     )
 
     def embed_texts(self, texts: Sequence[str]) -> list[list[float]]:
@@ -94,11 +94,11 @@ class HashEmbeddingClient:
 
     model_name: str = field(
         default="hash-embedding-v1",
-        metadata={"description": "Local deterministic embedding model identifier."},
+        metadata={"description": "本地确定性 embedding 模型标识。"},
     )
     dimensions: int = field(
         default=64,
-        metadata={"description": "Fixed vector size for hash-based local embeddings."},
+        metadata={"description": "基于哈希的本地 embedding 的固定向量维度。"},
     )
 
     def embed_texts(self, texts: Sequence[str]) -> list[list[float]]:

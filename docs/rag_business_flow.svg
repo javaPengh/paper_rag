@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1550" viewBox="0 0 2000 1550" role="img" aria-labelledby="title desc">
+  <title id="title">Paper RAG 当前业务流程图</title>
+  <desc id="desc">本图用两条泳道展示 Paper RAG 当前业务流程：离线建库阶段负责把 PDF 解析、切块、向量化并写入 SQLite 与 Chroma；在线问答阶段负责接收问题、检索证据、组装 Prompt、调用模型并返回答案与引用。</desc>
+
+  <defs>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#047857"/>
+    </marker>
+    <marker id="arrow-gray" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 400 16px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #475569; }
+      .lane { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.4; }
+      .lane-head-blue { fill: #dbeafe; stroke: #93c5fd; stroke-width: 1.2; }
+      .lane-head-green { fill: #dcfce7; stroke: #86efac; stroke-width: 1.2; }
+      .lane-title { font: 700 22px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #0f172a; }
+      .lane-note { font: 400 14px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #475569; }
+      .node { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.2; }
+      .node-blue { fill: #eff6ff; stroke: #60a5fa; stroke-width: 1.5; }
+      .node-green { fill: #f0fdf4; stroke: #22c55e; stroke-width: 1.5; }
+      .node-orange { fill: #fff7ed; stroke: #fb923c; stroke-width: 1.5; }
+      .node-pink { fill: #fdf2f8; stroke: #db2777; stroke-width: 1.5; stroke-dasharray: 7 5; }
+      .node-yellow { fill: #fefce8; stroke: #ca8a04; stroke-width: 1.5; }
+      .node-title { font: 700 16px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #0f172a; }
+      .node-text { font: 400 13px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #334155; }
+      .node-code { font: 600 12.5px Consolas, "Microsoft YaHei", monospace; fill: #1d4ed8; }
+      .label { font: 400 12px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #334155; }
+      .label-bg { fill: #f8fafc; stroke: #e2e8f0; stroke-width: 0.8; opacity: 0.96; }
+      .small { font: 400 12px "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif; fill: #475569; }
+      .edge-blue { fill: none; stroke: #2563eb; stroke-width: 1.9; marker-end: url(#arrow-blue); }
+      .edge-green { fill: none; stroke: #047857; stroke-width: 1.9; marker-end: url(#arrow-green); }
+      .edge-gray { fill: none; stroke: #64748b; stroke-width: 1.5; stroke-dasharray: 7 6; marker-end: url(#arrow-gray); }
+      .edge-thin { fill: none; stroke: #94a3b8; stroke-width: 1.2; stroke-dasharray: 5 5; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="2000" height="1550"/>
+
+  <text class="title" x="60" y="52">Paper RAG 当前业务流程图</text>
+  <text class="subtitle" x="60" y="84">按当前 MVP 代码路径整理，重点展示阶段边界、代码映射、数据载荷、SQLite/Chroma 双写，以及外部 Embedding 和 LLM 调用点。</text>
+
+  <!-- 离线建库泳道 -->
+  <rect class="lane" x="50" y="115" width="1900" height="660" rx="16"/>
+  <rect class="lane-head-blue" x="50" y="115" width="1900" height="64" rx="16"/>
+  <text class="lane-title" x="82" y="154">离线建库阶段 Data Ingestion / Indexing</text>
+  <text class="lane-note" x="510" y="154">文档变成索引：PDF 输入 -> 解析 -> 切块 -> embedding -> SQLite 与 Chroma 双写。</text>
+
+  <!-- 在线问答泳道 -->
+  <rect class="lane" x="50" y="825" width="1900" height="625" rx="16"/>
+  <rect class="lane-head-green" x="50" y="825" width="1900" height="64" rx="16"/>
+  <text class="lane-title" x="82" y="864">在线问答阶段 Retrieval &amp; QA</text>
+  <text class="lane-note" x="445" y="864">问题变成答案：用户问题 -> query embedding -> Top-k 检索 -> 证据上下文 -> Prompt -> 答案与 citation。</text>
+
+  <!-- 离线建库：上排主流程 -->
+  <rect class="node-pink" x="80" y="230" width="220" height="118" rx="8"/>
+  <text class="node-title" x="105" y="260">建库入口</text>
+  <text class="node-text" x="105" y="285">CLI：paper-rag index</text>
+  <text class="node-text" x="105" y="307">HTTP：上传 PDF 后索引</text>
+  <text class="node-code" x="105" y="330">[cli.py] [app.py]</text>
+
+  <rect class="node-blue" x="360" y="230" width="230" height="118" rx="8"/>
+  <text class="node-title" x="385" y="260">保存 / 扫描 PDF</text>
+  <text class="node-text" x="385" y="285">上传文件保存到受控目录</text>
+  <text class="node-text" x="385" y="307">或扫描 source_dir 下 PDF</text>
+  <text class="node-code" x="385" y="330">[uploads.py] [parser.py]</text>
+
+  <rect class="node-blue" x="660" y="230" width="230" height="118" rx="8"/>
+  <text class="node-title" x="685" y="260">解析 PDF</text>
+  <text class="node-text" x="685" y="285">抽取页面文本与 PDF 元数据</text>
+  <text class="node-text" x="685" y="307">生成 Document / Version / Page</text>
+  <text class="node-code" x="685" y="330">parse_pdf [parser.py]</text>
+
+  <rect class="node-yellow" x="960" y="230" width="255" height="118" rx="8"/>
+  <text class="node-title" x="985" y="260">去重 / 版本判断</text>
+  <text class="node-text" x="985" y="285">同 source_uri 未变则复用</text>
+  <text class="node-text" x="985" y="307">同 content_hash 则跳过重复内容</text>
+  <text class="node-code" x="985" y="330">[pipeline.py] [metadata_store.py]</text>
+
+  <rect class="node-pink" x="1545" y="230" width="295" height="118" rx="8"/>
+  <text class="node-title" x="1570" y="260">外部 Embedding API</text>
+  <text class="node-text" x="1570" y="285">OpenAI-compatible embeddings</text>
+  <text class="node-text" x="1570" y="307">本地模式使用 HashEmbeddingClient</text>
+  <text class="node-code" x="1570" y="330">[embeddings.py]</text>
+
+  <!-- 离线建库：下排主流程和存储 -->
+  <rect class="node-blue" x="660" y="505" width="230" height="118" rx="8"/>
+  <text class="node-title" x="685" y="535">文本切块 Chunking</text>
+  <text class="node-text" x="685" y="560">按 token 窗口切分页面文本</text>
+  <text class="node-text" x="685" y="582">保留页码、chunk_id、版本 ID</text>
+  <text class="node-code" x="685" y="605">chunk_pages [chunking.py]</text>
+
+  <rect class="node-blue" x="960" y="505" width="255" height="118" rx="8"/>
+  <text class="node-title" x="985" y="535">生成 Chunk Embedding</text>
+  <text class="node-text" x="985" y="560">批量调用 embed_texts</text>
+  <text class="node-text" x="985" y="582">输入 chunk.text，输出向量列表</text>
+  <text class="node-code" x="985" y="605">_embed_chunks [pipeline.py]</text>
+
+  <rect class="node-blue" x="1285" y="505" width="240" height="118" rx="8"/>
+  <text class="node-title" x="1310" y="535">写入本地索引</text>
+  <text class="node-text" x="1310" y="560">LocalPaperIndex.upsert</text>
+  <text class="node-text" x="1310" y="582">统一提交文档、chunk、向量</text>
+  <text class="node-code" x="1310" y="605">[local_index.py]</text>
+
+  <rect class="node-orange" x="1585" y="430" width="295" height="118" rx="8"/>
+  <text class="node-title" x="1610" y="460">SQLite 元数据存储</text>
+  <text class="node-code" x="1610" y="483">index_dir/metadata.sqlite3</text>
+  <text class="node-text" x="1610" y="505">存 documents / versions / chunks</text>
+  <text class="node-text" x="1610" y="527">含 chunk 纯文本、页码、source_uri</text>
+
+  <rect class="node-orange" x="1585" y="610" width="295" height="118" rx="8"/>
+  <text class="node-title" x="1610" y="640">Chroma 向量存储</text>
+  <text class="node-code" x="1610" y="663">index_dir/chroma/</text>
+  <text class="node-text" x="1610" y="685">存 chunk embedding 与 chunk_id</text>
+  <text class="node-text" x="1610" y="707">含 tenant_id、page、document metadata</text>
+
+  <!-- 离线建库箭头 -->
+  <path class="edge-blue" d="M300 289 H360"/>
+  <rect class="label-bg" x="314" y="260" width="85" height="24" rx="4"/>
+  <text class="label" x="322" y="277">PDF / 目录</text>
+
+  <path class="edge-blue" d="M590 289 H660"/>
+  <rect class="label-bg" x="606" y="260" width="78" height="24" rx="4"/>
+  <text class="label" x="614" y="277">PDF Path</text>
+
+  <path class="edge-blue" d="M890 289 H960"/>
+  <rect class="label-bg" x="850" y="205" width="92" height="24" rx="4"/>
+  <text class="label" x="858" y="222">ParsedPdf</text>
+
+  <path class="edge-gray" d="M1090 230 C1090 190 1660 185 1692 230"/>
+  <rect class="label-bg" x="1210" y="183" width="275" height="24" rx="4"/>
+  <text class="label" x="1218" y="200">复用已有索引则跳过切块与向量化</text>
+
+  <path class="edge-gray" d="M1215 292 C1375 292 1510 455 1585 485"/>
+  <rect class="label-bg" x="1300" y="358" width="185" height="24" rx="4"/>
+  <text class="label" x="1308" y="375">查询 source_uri/content_hash</text>
+
+  <path class="edge-blue" d="M1088 348 V415 C1088 448 890 448 775 505"/>
+  <rect class="label-bg" x="890" y="425" width="142" height="24" rx="4"/>
+  <text class="label" x="898" y="442">需重建的 Page 文本</text>
+
+  <path class="edge-blue" d="M890 564 H960"/>
+  <rect class="label-bg" x="900" y="635" width="107" height="24" rx="4"/>
+  <text class="label" x="908" y="652">Chunk 列表</text>
+
+  <path class="edge-gray" d="M1088 505 C1110 430 1460 365 1545 300"/>
+  <rect class="label-bg" x="1190" y="390" width="235" height="24" rx="4"/>
+  <text class="label" x="1198" y="407">chunk text -> embedding vectors</text>
+
+  <path class="edge-blue" d="M1215 564 H1285"/>
+  <rect class="label-bg" x="1216" y="635" width="165" height="24" rx="4"/>
+  <text class="label" x="1224" y="652">chunks + embeddings</text>
+
+  <path class="edge-blue" d="M1525 535 C1548 518 1563 500 1585 490"/>
+  <rect class="label-bg" x="1435" y="452" width="150" height="24" rx="4"/>
+  <text class="label" x="1443" y="469">元数据 / 纯文本</text>
+
+  <path class="edge-blue" d="M1525 590 C1548 612 1565 642 1585 666"/>
+  <rect class="label-bg" x="1415" y="735" width="178" height="24" rx="4"/>
+  <text class="label" x="1423" y="752">向量 / chunk_id / metadata</text>
+
+  <!-- 在线问答：上排 -->
+  <rect class="node-pink" x="80" y="965" width="230" height="118" rx="8"/>
+  <text class="node-title" x="105" y="995">用户提问入口</text>
+  <text class="node-text" x="105" y="1020">HTTP：POST /api/ask</text>
+  <text class="node-text" x="105" y="1042">CLI：paper-rag ask</text>
+  <text class="node-code" x="105" y="1065">[app.py] [cli.py]</text>
+
+  <rect class="node-green" x="380" y="965" width="230" height="118" rx="8"/>
+  <text class="node-title" x="405" y="995">创建检索器</text>
+  <text class="node-text" x="405" y="1020">读取 index_dir 与 tenant_id</text>
+  <text class="node-text" x="405" y="1042">绑定 LocalPaperIndex</text>
+  <text class="node-code" x="405" y="1065">Retriever [search.py]</text>
+
+  <rect class="node-green" x="690" y="965" width="230" height="118" rx="8"/>
+  <text class="node-title" x="715" y="995">问题向量化</text>
+  <text class="node-text" x="715" y="1020">embed_texts([question])</text>
+  <text class="node-text" x="715" y="1042">输出 query_embedding</text>
+  <text class="node-code" x="715" y="1065">[embeddings.py]</text>
+
+  <rect class="node-green" x="1000" y="965" width="240" height="118" rx="8"/>
+  <text class="node-title" x="1025" y="995">向量检索 Top-k</text>
+  <text class="node-text" x="1025" y="1020">Chroma query + tenant 过滤</text>
+  <text class="node-text" x="1025" y="1042">按 cosine distance 计算 score</text>
+  <text class="node-code" x="1025" y="1065">search [vector_store.py]</text>
+
+  <rect class="node-green" x="1320" y="965" width="240" height="118" rx="8"/>
+  <text class="node-title" x="1345" y="995">补全证据信息</text>
+  <text class="node-text" x="1345" y="1020">chunk_id 回查 SQLite</text>
+  <text class="node-text" x="1345" y="1042">补全文本、页码、文档</text>
+  <text class="node-code" x="1345" y="1065">LocalPaperIndex.search</text>
+
+  <rect class="node-orange" x="1650" y="945" width="260" height="86" rx="8"/>
+  <text class="node-title" x="1672" y="975">读取 Chroma</text>
+  <text class="node-text" x="1672" y="999">输入 query_embedding</text>
+  <text class="node-text" x="1672" y="1019">返回 Top-k chunk_id / score</text>
+
+  <rect class="node-orange" x="1650" y="1058" width="260" height="86" rx="8"/>
+  <text class="node-title" x="1672" y="1088">读取 SQLite</text>
+  <text class="node-text" x="1672" y="1112">输入 chunk_id</text>
+  <text class="node-text" x="1672" y="1132">返回 chunk 文本 / 页码 / Document</text>
+
+  <!-- 在线问答：下排 -->
+  <rect class="node-pink" x="690" y="1138" width="230" height="96" rx="8"/>
+  <text class="node-title" x="715" y="1168">外部 Embedding API</text>
+  <text class="node-text" x="715" y="1192">问题文本生成 query 向量</text>
+  <text class="node-code" x="715" y="1215">或 HashEmbeddingClient</text>
+
+  <rect class="node-green" x="380" y="1270" width="250" height="118" rx="8"/>
+  <text class="node-title" x="405" y="1300">过滤证据并组装 Context</text>
+  <text class="node-text" x="405" y="1325">min_score + 词汇重叠过滤</text>
+  <text class="node-text" x="405" y="1347">生成 Evidence 块与 citation</text>
+  <text class="node-code" x="405" y="1370">[answering.py]</text>
+
+  <rect class="node-green" x="720" y="1270" width="250" height="118" rx="8"/>
+  <text class="node-title" x="745" y="1300">组装 Prompt</text>
+  <text class="node-text" x="745" y="1325">system_prompt：只使用证据</text>
+  <text class="node-text" x="745" y="1347">user_prompt：question + context</text>
+  <text class="node-code" x="745" y="1370">build_*_prompt [answering.py]</text>
+
+  <rect class="node-green" x="1060" y="1270" width="250" height="118" rx="8"/>
+  <text class="node-title" x="1085" y="1300">生成答案与引用</text>
+  <text class="node-text" x="1085" y="1325">LLM 生成或本地抽取式回答</text>
+  <text class="node-text" x="1085" y="1347">必要时附加 citation</text>
+  <text class="node-code" x="1085" y="1370">OpenAIAnswerGenerator</text>
+
+  <rect class="node-pink" x="1430" y="1270" width="260" height="118" rx="8"/>
+  <text class="node-title" x="1455" y="1300">外部 LLM Chat API</text>
+  <text class="node-text" x="1455" y="1325">输入携带 context 的 Prompt</text>
+  <text class="node-text" x="1455" y="1347">返回 raw answer</text>
+  <text class="node-code" x="1455" y="1370">OpenAIChatClient / 本地模式</text>
+
+  <rect class="node-pink" x="1740" y="1270" width="210" height="118" rx="8"/>
+  <text class="node-title" x="1765" y="1300">返回用户</text>
+  <text class="node-text" x="1765" y="1325">answer / citations</text>
+  <text class="node-text" x="1765" y="1347">evidence / context</text>
+  <text class="node-code" x="1765" y="1370">AskResponse [app.py]</text>
+
+  <!-- 在线问答箭头 -->
+  <path class="edge-green" d="M310 1024 H380"/>
+  <rect class="label-bg" x="235" y="925" width="160" height="24" rx="4"/>
+  <text class="label" x="243" y="942">question / top_k / tenant</text>
+
+  <path class="edge-green" d="M610 1024 H690"/>
+  <rect class="label-bg" x="626" y="994" width="78" height="24" rx="4"/>
+  <text class="label" x="634" y="1011">question</text>
+
+  <path class="edge-gray" d="M805 1083 V1138"/>
+  <rect class="label-bg" x="822" y="1102" width="170" height="24" rx="4"/>
+  <text class="label" x="830" y="1119">问题文本 -> query 向量</text>
+
+  <path class="edge-green" d="M920 1024 H1000"/>
+  <rect class="label-bg" x="920" y="925" width="135" height="24" rx="4"/>
+  <text class="label" x="928" y="942">query_embedding</text>
+
+  <path class="edge-gray" d="M1240 1004 C1355 914 1540 918 1650 988"/>
+  <rect class="label-bg" x="1125" y="905" width="230" height="24" rx="4"/>
+  <text class="label" x="1133" y="922">query_embedding + tenant_id</text>
+
+  <path class="edge-green" d="M1240 1024 H1320"/>
+  <rect class="label-bg" x="1225" y="1108" width="175" height="24" rx="4"/>
+  <text class="label" x="1233" y="1125">Top-k chunk_id / score</text>
+
+  <path class="edge-gray" d="M1560 1045 C1615 1050 1625 1088 1650 1102"/>
+  <rect class="label-bg" x="1535" y="1150" width="220" height="24" rx="4"/>
+  <text class="label" x="1543" y="1167">chunk_id -> 文本 / 页码 / 文档</text>
+
+  <path class="edge-green" d="M1440 1083 V1185 C1440 1230 670 1230 505 1270"/>
+  <rect class="label-bg" x="900" y="1200" width="230" height="24" rx="4"/>
+  <text class="label" x="908" y="1217">SearchResult(chunk, document, score)</text>
+
+  <path class="edge-green" d="M630 1329 H720"/>
+  <rect class="label-bg" x="600" y="1242" width="145" height="24" rx="4"/>
+  <text class="label" x="608" y="1259">context + citations</text>
+
+  <path class="edge-green" d="M970 1329 H1060"/>
+  <rect class="label-bg" x="950" y="1242" width="122" height="24" rx="4"/>
+  <text class="label" x="958" y="1259">Prompt / context</text>
+
+  <path class="edge-gray" d="M1310 1329 H1430"/>
+  <rect class="label-bg" x="1295" y="1242" width="125" height="24" rx="4"/>
+  <text class="label" x="1303" y="1259">携带证据 Prompt</text>
+
+  <path class="edge-gray" d="M1430 1362 C1380 1408 1325 1408 1255 1388"/>
+  <rect class="label-bg" x="1330" y="1402" width="92" height="24" rx="4"/>
+  <text class="label" x="1338" y="1419">raw answer</text>
+
+  <path class="edge-green" d="M1310 1368 C1425 1440 1640 1440 1740 1368"/>
+  <rect class="label-bg" x="1510" y="1415" width="145" height="24" rx="4"/>
+  <text class="label" x="1518" y="1432">Answer 结构体</text>
+
+  <!-- 图例 -->
+  <rect class="node" x="60" y="1480" width="650" height="46" rx="8"/>
+  <rect class="node-blue" x="82" y="1494" width="26" height="16" rx="3"/>
+  <text class="small" x="118" y="1508">蓝色：建库处理节点</text>
+  <rect class="node-green" x="275" y="1494" width="26" height="16" rx="3"/>
+  <text class="small" x="311" y="1508">绿色：问答处理节点</text>
+  <rect class="node-orange" x="475" y="1494" width="26" height="16" rx="3"/>
+  <text class="small" x="511" y="1508">橙色：本地持久化存储</text>
+
+  <rect class="node" x="740" y="1480" width="770" height="46" rx="8"/>
+  <line class="edge-blue" x1="765" y1="1503" x2="825" y2="1503"/>
+  <text class="small" x="840" y="1508">蓝色箭头：建库数据流</text>
+  <line class="edge-green" x1="1030" y1="1503" x2="1090" y2="1503"/>
+  <text class="small" x="1105" y="1508">绿色箭头：问答数据流</text>
+  <line class="edge-gray" x1="1300" y1="1503" x2="1360" y2="1503"/>
+  <text class="small" x="1375" y="1508">灰色虚线：存储读取或外部服务调用</text>
+</svg>

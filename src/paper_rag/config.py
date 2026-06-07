@@ -11,39 +11,39 @@ class Settings:
 
     index_dir: Path = field(
         default=Path(".paper_rag/index"),
-        metadata={"description": "Default local index root containing SQLite and Chroma data."},
+        metadata={"description": "默认本地索引根目录，包含 SQLite 和 Chroma 数据。"},
     )
     upload_dir: Path = field(
         default=Path(".paper_rag/uploads"),
-        metadata={"description": "Managed local storage root for uploaded PDF sources."},
+        metadata={"description": "上传 PDF 源文件的受管本地存储根目录。"},
     )
     upload_max_bytes: int = field(
         default=50 * 1024 * 1024,
-        metadata={"description": "Maximum accepted upload size in bytes."},
+        metadata={"description": "允许的最大上传大小（字节）。"},
     )
     llm_model: str = field(
         default="gpt-4.1-mini",
-        metadata={"description": "Default OpenAI-compatible model for answer generation."},
+        metadata={"description": "用于答案生成的默认 OpenAI 兼容模型。"},
     )
     embedding_model: str = field(
         default="text-embedding-3-small",
-        metadata={"description": "Default OpenAI-compatible model for document/query embeddings."},
+        metadata={"description": "用于文档/查询 embedding 的默认 OpenAI 兼容模型。"},
     )
     openai_api_key: str | None = field(
         default=None,
-        metadata={"description": "API key passed to OpenAI-compatible clients."},
+        metadata={"description": "传给 OpenAI 兼容客户端的 API 密钥。"},
     )
     openai_base_url: str | None = field(
         default=None,
-        metadata={"description": "Optional OpenAI-compatible base URL override."},
+        metadata={"description": "可选的 OpenAI 兼容基础 URL 覆盖。"},
     )
     top_k: int = field(
         default=5,
-        metadata={"description": "Default number of chunks retrieved for a question."},
+        metadata={"description": "每个问题默认检索的 chunk 数量。"},
     )
     log_level: str = field(
         default="INFO",
-        metadata={"description": "Process logging threshold used by CLI commands."},
+        metadata={"description": "CLI 命令使用的进程日志级别。"},
     )
 
 

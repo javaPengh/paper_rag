@@ -29,15 +29,15 @@ class OpenAIChatClient:
     """OpenAI 兼容的聊天客户端。"""
 
     model_name: str = field(
-        metadata={"description": "OpenAI-compatible chat model used for answer generation."},
+        metadata={"description": "用于答案生成的 OpenAI 兼容聊天模型。"},
     )
     api_key: str | None = field(
         default=None,
-        metadata={"description": "API key for the chat provider."},
+        metadata={"description": "聊天提供方的 API 密钥。"},
     )
     base_url: str | None = field(
         default=None,
-        metadata={"description": "Optional OpenAI-compatible chat endpoint override."},
+        metadata={"description": "可选的 OpenAI 兼容聊天端点覆盖。"},
     )
 
     def complete(self, *, system_prompt: str, user_prompt: str) -> str:
@@ -74,11 +74,11 @@ class OpenAIAnswerGenerator:
     """使用 OpenAI 兼容聊天模型生成带引用的答案。"""
 
     chat_client: ChatClient = field(
-        metadata={"description": "Chat completion boundary used to generate final answers."},
+        metadata={"description": "用于生成最终答案的聊天补全边界。"},
     )
     min_score: float = field(
         default=0.05,
-        metadata={"description": "Minimum retrieval score for evidence to enter the prompt."},
+        metadata={"description": "允许证据进入提示词的最低检索分数。"},
     )
 
     def generate(self, question: str, results: Sequence[SearchResult]) -> Answer:
@@ -123,15 +123,15 @@ class ExtractiveAnswerGenerator:
 
     model_name: str = field(
         default="extractive-local-v1",
-        metadata={"description": "Local answer generator identifier."},
+        metadata={"description": "本地答案生成器标识。"},
     )
     min_score: float = field(
         default=0.05,
-        metadata={"description": "Minimum retrieval score for extractive evidence."},
+        metadata={"description": "抽取式证据的最低检索分数。"},
     )
     max_evidence_items: int = field(
         default=3,
-        metadata={"description": "Maximum evidence chunks included in the local answer."},
+        metadata={"description": "本地答案中包含的最大证据 chunk 数量。"},
     )
 
     def generate(self, question: str, results: Sequence[SearchResult]) -> Answer:

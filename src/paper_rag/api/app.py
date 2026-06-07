@@ -49,7 +49,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Paper RAG Inspector",
         version=__version__,
-        description="Development inspector for local Paper RAG indexes.",
+        description="本地 Paper RAG 索引的开发检视器。",
     )
 
     static_dir = Path(__file__).resolve().parents[1] / "web" / "static"
@@ -67,10 +67,10 @@ def create_app() -> FastAPI:
 
     @app.get("/api/index/status", response_model=IndexStatusResponse)
     def index_status(
-        tenant_id: Annotated[str, Query(description="Tenant/workspace ID.")] = "default",
+        tenant_id: Annotated[str, Query(description="租户/工作区 ID。")] = "default",
         index_dir: Annotated[
             str | None,
-            Query(description="Local index directory. Defaults to PAPER_RAG_INDEX_DIR."),
+            Query(description="本地索引目录，默认使用 PAPER_RAG_INDEX_DIR。"),
         ] = None,
     ) -> IndexStatusResponse:
         """返回租户范围内的本地索引计数和构建元数据。"""
@@ -80,10 +80,10 @@ def create_app() -> FastAPI:
 
     @app.get("/api/documents", response_model=list[DocumentSummaryResponse])
     def list_documents(
-        tenant_id: Annotated[str, Query(description="Tenant/workspace ID.")] = "default",
+        tenant_id: Annotated[str, Query(description="租户/工作区 ID。")] = "default",
         index_dir: Annotated[
             str | None,
-            Query(description="Local index directory. Defaults to PAPER_RAG_INDEX_DIR."),
+            Query(description="本地索引目录，默认使用 PAPER_RAG_INDEX_DIR。"),
         ] = None,
     ) -> list[DocumentSummaryResponse]:
         """列出供 Inspector 文档面板使用的已索引文档。"""
@@ -94,10 +94,10 @@ def create_app() -> FastAPI:
     @app.get("/api/documents/{document_id}/chunks", response_model=list[ChunkResponse])
     def list_chunks(
         document_id: str,
-        tenant_id: Annotated[str, Query(description="Tenant/workspace ID.")] = "default",
+        tenant_id: Annotated[str, Query(description="租户/工作区 ID。")] = "default",
         index_dir: Annotated[
             str | None,
-            Query(description="Local index directory. Defaults to PAPER_RAG_INDEX_DIR."),
+            Query(description="本地索引目录，默认使用 PAPER_RAG_INDEX_DIR。"),
         ] = None,
         limit: Annotated[int, Query(ge=1, le=500)] = 50,
     ) -> list[ChunkResponse]:
@@ -116,30 +116,30 @@ def create_app() -> FastAPI:
 
     @app.post("/api/documents/upload", response_model=UploadIndexResponse)
     async def upload_document(
-        file: Annotated[UploadFile, File(description="Single PDF file to store and index.")],
+        file: Annotated[UploadFile, File(description="要保存并建立索引的单个 PDF 文件。")],
         tenant_id: Annotated[
             str,
-            Form(description="Tenant/workspace ID for data isolation."),
+            Form(description="用于数据隔离的租户/工作区 ID。"),
         ] = "default",
         index_dir: Annotated[
             str | None,
-            Form(description="Local index directory. Defaults to PAPER_RAG_INDEX_DIR."),
+            Form(description="本地索引目录，默认使用 PAPER_RAG_INDEX_DIR。"),
         ] = None,
         local: Annotated[
             bool,
-            Form(description="Use deterministic local hash embeddings for offline checks."),
+            Form(description="使用确定性的本地哈希 embedding 进行离线检查。"),
         ] = False,
         chunk_size: Annotated[
             int,
-            Form(ge=1, description="Maximum chunk size in tokens."),
+            Form(ge=1, description="chunk 的最大 token 数。"),
         ] = 800,
         chunk_overlap: Annotated[
             int,
-            Form(ge=0, description="Chunk overlap in tokens."),
+            Form(ge=0, description="chunk 的 token 重叠数。"),
         ] = 120,
         embedding_model: Annotated[
             str | None,
-            Form(description="Embedding model name."),
+            Form(description="embedding 模型名称。"),
         ] = None,
     ) -> UploadIndexResponse:
         """保存一个上传的 PDF，并同步触发本地索引流水线。"""

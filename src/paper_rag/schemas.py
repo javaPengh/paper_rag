@@ -17,114 +17,114 @@ def utc_now() -> datetime:
 class Document(BaseModel):
     """租户知识库中的一个逻辑文档。"""
 
-    id: str = Field(description="Stable internal document ID, independent of local file paths.")
+    id: str = Field(description="稳定的内部文档 ID，不依赖本地文件路径。")
     tenant_id: str = Field(
         default="default",
-        description="Tenant or workspace namespace used to isolate documents and chunks.",
+        description="用于隔离文档和 chunk 的租户或工作区命名空间。",
     )
-    source_uri: str = Field(description="Original or managed source URI for this document.")
-    file_name: str = Field(description="Display file name retained for citations and debugging.")
-    page_count: int = Field(ge=0, description="Total number of pages reported by the parser.")
+    source_uri: str = Field(description="该文档的原始或受管源 URI。")
+    file_name: str = Field(description="保留用于引用和调试的显示文件名。")
+    page_count: int = Field(ge=0, description="解析器报告的总页数。")
     title: str | None = Field(
         default=None,
-        description="Optional title extracted from PDF metadata when available.",
+        description="可选的 PDF 元数据标题（如可用）。",
     )
     source_id: str | None = Field(
         default=None,
-        description="Optional external system ID for future connectors or object stores.",
+        description="为未来连接器或对象存储预留的可选外部系统 ID。",
     )
     current_version_id: str | None = Field(
         default=None,
-        description="DocumentVersion ID currently active for retrieval and citation.",
+        description="当前用于检索和引用的 DocumentVersion ID。",
     )
     created_at: datetime = Field(
         default_factory=utc_now,
-        description="UTC timestamp when the logical document was first registered.",
+        description="逻辑文档首次注册时的 UTC 时间戳。",
     )
     updated_at: datetime = Field(
         default_factory=utc_now,
-        description="UTC timestamp when document metadata was last refreshed.",
+        description="文档元数据最后刷新的 UTC 时间戳。",
     )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
-        description="Parser or connector metadata that should not affect core identity.",
+        description="不应影响核心身份的解析器或连接器元数据。",
     )
 
 
 class DocumentVersion(BaseModel):
     """逻辑文档的一个具体内容版本。"""
 
-    id: str = Field(description="Stable ID for this exact parsed content version.")
+    id: str = Field(description="该具体解析内容版本的稳定 ID。")
     tenant_id: str = Field(
         default="default",
-        description="Tenant namespace inherited from the logical document.",
+        description="继承自逻辑文档的租户命名空间。",
     )
-    document_id: str = Field(description="Logical document ID that owns this version.")
-    content_hash: str = Field(description="SHA-256 hash of normalized parsed page text.")
-    source_uri: str = Field(description="Source URI used when this version was parsed.")
-    file_name: str = Field(description="File name associated with this content version.")
-    page_count: int = Field(ge=0, description="Page count for this parsed version.")
+    document_id: str = Field(description="拥有该版本的逻辑文档 ID。")
+    content_hash: str = Field(description="规范化解析页面文本的 SHA-256 哈希。")
+    source_uri: str = Field(description="解析该版本时使用的源 URI。")
+    file_name: str = Field(description="与该内容版本相关的文件名。")
+    page_count: int = Field(ge=0, description="该解析版本的页数。")
     source_id: str | None = Field(
         default=None,
-        description="Optional external source ID captured with this version.",
+        description="随该版本记录的可选外部源 ID。",
     )
     title: str | None = Field(
         default=None,
-        description="Optional PDF title captured at parse time.",
+        description="解析时记录的可选 PDF 标题。",
     )
     created_at: datetime = Field(
         default_factory=utc_now,
-        description="UTC timestamp when this content version was created.",
+        description="该内容版本创建时的 UTC 时间戳。",
     )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
-        description="Raw parser or connector metadata for this version.",
+        description="该版本的原始解析器或连接器元数据。",
     )
 
 
 class Page(BaseModel):
     """从一个 PDF 页面提取出的文本。"""
 
-    document_id: str = Field(description="Logical document ID this page belongs to.")
+    document_id: str = Field(description="该页面所属的逻辑文档 ID。")
     document_version_id: str | None = Field(
         default=None,
-        description="Content version ID that produced this page text.",
+        description="生成该页面文本的内容版本 ID。",
     )
-    page_number: int = Field(ge=1, description="One-based page number in the source PDF.")
-    text: str = Field(description="Normalized text extracted from this page.")
+    page_number: int = Field(ge=1, description="源 PDF 中从 1 开始的页码。")
+    text: str = Field(description="从该页面提取并规范化后的文本。")
 
 
 class SkippedFile(BaseModel):
     """目录导入时被跳过的非 PDF 或不受支持文件。"""
 
-    source_path: Path = Field(description="Path that was skipped during source scanning.")
-    reason: str = Field(description="Human-readable reason the file was not imported.")
+    source_path: Path = Field(description="在源扫描期间被跳过的路径。")
+    reason: str = Field(description="文件未被导入的人类可读原因。")
 
 
 class ParseIssue(BaseModel):
     """可恢复的解析警告或错误。"""
 
-    source_path: Path = Field(description="PDF path associated with the parse issue.")
-    message: str = Field(description="Human-readable parse warning or error message.")
+    source_path: Path = Field(description="与解析问题相关的 PDF 路径。")
+    message: str = Field(description="人类可读的解析警告或错误消息。")
     page_number: int | None = Field(
         default=None,
         ge=1,
-        description="One-based page number when the issue is page-specific.",
+        description="问题与某一页面相关时的页码（从 1 开始）。",
     )
 
 
 class ParsedPdf(BaseModel):
     """解析后的 PDF 内容以及可恢复警告。"""
 
-    document: Document = Field(description="Logical document metadata produced by parsing.")
-    version: DocumentVersion = Field(description="Concrete content version produced by parsing.")
+    document: Document = Field(description="解析产生的逻辑文档元数据。")
+    version: DocumentVersion = Field(description="解析产生的具体内容版本。")
     pages: list[Page] = Field(
         default_factory=list,
-        description="Non-empty parsed pages available for chunking.",
+        description="可用于分块的非空解析页面。",
     )
     warnings: list[ParseIssue] = Field(
         default_factory=list,
-        description="Recoverable parse issues that did not stop document import.",
+        description="未阻止文档导入的可恢复解析问题。",
     )
 
 
@@ -133,48 +133,48 @@ class DirectoryParseResult(BaseModel):
 
     documents: list[Document] = Field(
         default_factory=list,
-        description="Logical documents successfully parsed from the source directory.",
+        description="从源目录成功解析出的逻辑文档。",
     )
     versions: list[DocumentVersion] = Field(
         default_factory=list,
-        description="Content versions successfully parsed from the source directory.",
+        description="从源目录成功解析出的内容版本。",
     )
     pages: list[Page] = Field(
         default_factory=list,
-        description="All parsed pages across successfully imported PDFs.",
+        description="所有成功导入 PDF 的解析页面。",
     )
     skipped_files: list[SkippedFile] = Field(
         default_factory=list,
-        description="Non-PDF or unsupported files ignored during scanning.",
+        description="扫描时被忽略的非 PDF 或不支持文件。",
     )
     errors: list[ParseIssue] = Field(
         default_factory=list,
-        description="Fatal per-file parse errors that prevented import.",
+        description="阻止导入的每个文件致命解析错误。",
     )
     warnings: list[ParseIssue] = Field(
         default_factory=list,
-        description="Recoverable parse warnings gathered across imported PDFs.",
+        description="从已导入 PDF 中收集到的可恢复解析警告。",
     )
 
 
 class Chunk(BaseModel):
     """带有源页面来源信息的可检索文本 chunk。"""
 
-    id: str = Field(description="Stable chunk ID derived from provenance and text.")
-    document_id: str = Field(description="Logical document ID that owns the chunk.")
-    document_version_id: str = Field(description="Content version ID that produced the chunk.")
-    text: str = Field(description="Chunk text used for embedding, retrieval, and citation.")
-    page_start: int = Field(ge=1, description="First one-based source page covered by chunk.")
-    page_end: int = Field(ge=1, description="Last one-based source page covered by chunk.")
-    chunk_index: int = Field(ge=0, description="Zero-based chunk order within the document.")
+    id: str = Field(description="由来源信息和文本派生的稳定 chunk ID。")
+    document_id: str = Field(description="拥有该 chunk 的逻辑文档 ID。")
+    document_version_id: str = Field(description="生成该 chunk 的内容版本 ID。")
+    text: str = Field(description="用于 embedding、检索和引用的 chunk 文本。")
+    page_start: int = Field(ge=1, description="chunk 覆盖的首个源页码（从 1 开始）。")
+    page_end: int = Field(ge=1, description="chunk 覆盖的最后一个源页码（从 1 开始）。")
+    chunk_index: int = Field(ge=0, description="文档内从 0 开始的 chunk 顺序。")
     token_count: int | None = Field(
         default=None,
         ge=0,
-        description="Number of tokenizer units in the chunk when known.",
+        description="已知时 chunk 中的 tokenizer 单元数。",
     )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
-        description="Lightweight metadata mirrored into vector storage.",
+        description="镜像到向量存储的轻量元数据。",
     )
 
     @model_validator(mode="after")
@@ -188,18 +188,18 @@ class Chunk(BaseModel):
 class Citation(BaseModel):
     """指向答案所用证据的人类可读引用。"""
 
-    document_id: str = Field(description="Logical document ID cited by the answer.")
+    document_id: str = Field(description="答案所引用的逻辑文档 ID。")
     document_version_id: str | None = Field(
         default=None,
-        description="Content version ID cited by the answer, when available.",
+        description="答案所引用的内容版本 ID（如有）。",
     )
-    chunk_id: str = Field(description="Evidence chunk ID backing this citation.")
-    file_name: str = Field(description="File name shown in the citation label.")
-    page_start: int = Field(ge=1, description="First one-based cited source page.")
-    page_end: int = Field(ge=1, description="Last one-based cited source page.")
+    chunk_id: str = Field(description="支撑该引用的证据 chunk ID。")
+    file_name: str = Field(description="在引用标签中显示的文件名。")
+    page_start: int = Field(ge=1, description="引用的首个源页码（从 1 开始）。")
+    page_end: int = Field(ge=1, description="引用的最后一个源页码（从 1 开始）。")
     snippet: str | None = Field(
         default=None,
-        description="Short evidence preview displayed with citation details.",
+        description="随引用详情显示的简短证据预览。",
     )
 
     @model_validator(mode="after")
@@ -220,31 +220,31 @@ class Citation(BaseModel):
 class Answer(BaseModel):
     """生成的答案以及引用和证据元数据。"""
 
-    question: str = Field(description="User question answered by the RAG pipeline.")
-    answer: str = Field(description="Final answer text returned to the caller.")
+    question: str = Field(description="RAG 流水线回答的用户问题。")
+    answer: str = Field(description="返回给调用方的最终答案文本。")
     citations: list[Citation] = Field(
         default_factory=list,
-        description="Citations that the answer explicitly relies on.",
+        description="答案明确依赖的引用。",
     )
     evidence_chunk_ids: list[str] = Field(
         default_factory=list,
-        description="Chunk IDs selected as usable evidence for the answer.",
+        description="被选为答案可用证据的 chunk ID。",
     )
     model_name: str | None = Field(
         default=None,
-        description="LLM or local answer generator name that produced the answer.",
+        description="生成该答案的 LLM 或本地答案生成器名称。",
     )
     insufficient_evidence: bool = Field(
         default=False,
-        description="Whether retrieval evidence was insufficient for a grounded answer.",
+        description="检索证据是否不足以支撑有依据的答案。",
     )
     context: str | None = Field(
         default=None,
-        description="Prompt context assembled from retrieved evidence for debugging.",
+        description="由检索证据组装的提示词上下文，便于调试。",
     )
     created_at: datetime = Field(
         default_factory=utc_now,
-        description="UTC timestamp when the answer object was created.",
+        description="答案对象创建时的 UTC 时间戳。",
     )
 
 
@@ -253,74 +253,74 @@ class IndexedSource(BaseModel):
 
     tenant_id: str = Field(
         default="default",
-        description="Tenant namespace for the indexed source snapshot.",
+        description="被索引源快照的租户命名空间。",
     )
-    document_id: str = Field(description="Logical document ID present in the index.")
-    document_version_id: str = Field(description="Content version ID present in the index.")
-    source_uri: str = Field(description="Source URI used to build this index entry.")
-    file_name: str = Field(description="Display file name for the indexed source.")
-    content_hash: str = Field(description="Content hash indexed for deduplication checks.")
+    document_id: str = Field(description="索引中存在的逻辑文档 ID。")
+    document_version_id: str = Field(description="索引中存在的内容版本 ID。")
+    source_uri: str = Field(description="用于构建该索引条目的源 URI。")
+    file_name: str = Field(description="被索引源的显示文件名。")
+    content_hash: str = Field(description="用于去重检查的已索引内容哈希。")
     indexed_at: datetime = Field(
         default_factory=utc_now,
-        description="UTC timestamp when this source snapshot was recorded.",
+        description="记录该源快照时的 UTC 时间戳。",
     )
 
 
 class SearchResult(BaseModel):
     """一个检索结果 chunk，包含相似度分数和源文档。"""
 
-    chunk: Chunk = Field(description="Retrieved chunk returned from vector search.")
-    score: float = Field(description="Normalized similarity score used for answer filtering.")
+    chunk: Chunk = Field(description="向量搜索返回的检索 chunk。")
+    score: float = Field(description="用于答案过滤的归一化相似度分数。")
     document: Document | None = Field(
         default=None,
-        description="Logical document metadata joined from SQLite after vector search.",
+        description="向量搜索后从 SQLite 关联得到的逻辑文档元数据。",
     )
     distance: float | None = Field(
         default=None,
-        description="Raw vector-store distance when provided by the backend.",
+        description="后端提供时的原始向量库距离。",
     )
 
 
 class IndexBuildResult(BaseModel):
     """一次索引运行的摘要。"""
 
-    status: IndexStatus = Field(description="Index status after the build run completed.")
+    status: IndexStatus = Field(description="构建运行完成后的索引状态。")
     indexed_documents: list[Document] = Field(
         default_factory=list,
-        description="New logical documents parsed and indexed in this run.",
+        description="本次运行中新解析并索引的逻辑文档。",
     )
     reused_documents: list[Document] = Field(
         default_factory=list,
-        description="All documents reused without new chunk embedding work.",
+        description="无需新的 chunk embedding 工作而复用的所有文档。",
     )
     reused_source_documents: list[Document] = Field(
         default_factory=list,
-        description="Documents skipped because the same source path and content were current.",
+        description="因相同源路径和内容仍然有效而跳过的文档。",
     )
     reused_content_documents: list[Document] = Field(
         default_factory=list,
-        description="Documents skipped because identical content already had vectors.",
+        description="因相同内容已存在向量而跳过的文档。",
     )
     reindexed_documents: list[Document] = Field(
         default_factory=list,
-        description="Existing documents whose source content changed and was reindexed.",
+        description="源内容发生变化并被重新索引的已有文档。",
     )
     indexed_chunk_count: int = Field(
         default=0,
         ge=0,
-        description="Number of chunks newly embedded and written in this run.",
+        description="本次运行中新生成 embedding 并写入的 chunk 数。",
     )
     skipped_files: list[SkippedFile] = Field(
         default_factory=list,
-        description="Files ignored before parsing because they were unsupported.",
+        description="因不受支持而在解析前被忽略的文件。",
     )
     errors: list[ParseIssue] = Field(
         default_factory=list,
-        description="Per-file failures captured without aborting the whole build.",
+        description="在不中止整个构建的情况下捕获到的逐文件失败。",
     )
     warnings: list[ParseIssue] = Field(
         default_factory=list,
-        description="Recoverable parse issues captured during the build.",
+        description="构建过程中捕获到的可恢复解析问题。",
     )
 
 
@@ -329,39 +329,39 @@ class IndexStatus(BaseModel):
 
     status: Literal["empty", "building", "ready", "stale", "error"] = Field(
         default="empty",
-        description="Lifecycle state of the local tenant index.",
+        description="本地租户索引的生命周期状态。",
     )
-    tenant_id: str = Field(default="default", description="Tenant namespace summarized here.")
-    index_dir: Path = Field(description="Root directory containing SQLite and Chroma data.")
+    tenant_id: str = Field(default="default", description="此处汇总的租户命名空间。")
+    index_dir: Path = Field(description="包含 SQLite 和 Chroma 数据的根目录。")
     document_count: int = Field(
         default=0,
         ge=0,
-        description="Number of indexed logical documents for the tenant.",
+        description="该租户已索引的逻辑文档数量。",
     )
     chunk_count: int = Field(
         default=0,
         ge=0,
-        description="Number of indexed chunks available for retrieval.",
+        description="可用于检索的已索引 chunk 数量。",
     )
     embedding_model: str | None = Field(
         default=None,
-        description="Embedding model used to create the current vector index.",
+        description="用于创建当前向量索引的 embedding 模型。",
     )
     built_at: datetime | None = Field(
         default=None,
-        description="UTC timestamp when the index was first built.",
+        description="索引首次构建时的 UTC 时间戳。",
     )
     updated_at: datetime | None = Field(
         default=None,
-        description="UTC timestamp when status was last written.",
+        description="状态最后写入时的 UTC 时间戳。",
     )
     sources: list[IndexedSource] = Field(
         default_factory=list,
-        description="Source snapshots included in the current index status.",
+        description="当前索引状态中包含的源快照。",
     )
     errors: list[str] = Field(
         default_factory=list,
-        description="Build errors retained for status inspection.",
+        description="保留用于状态检查的构建错误。",
     )
 
     @field_validator("errors")

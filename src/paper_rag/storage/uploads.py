@@ -28,27 +28,27 @@ class StoredUpload:
     """保存到受管租户范围源存储中的 PDF。"""
 
     tenant_id: str = field(
-        metadata={"description": "Tenant ID supplied by the upload caller."},
+        metadata={"description": "上传方提供的租户 ID。"},
     )
     storage_tenant: str = field(
-        metadata={"description": "Sanitized tenant path segment used under the storage root."},
+        metadata={"description": "在存储根目录下使用的已清理租户路径片段。"},
     )
     original_file_name: str = field(
-        metadata={"description": "Original upload file name after removing path components."},
+        metadata={"description": "去掉路径部分后的原始上传文件名。"},
     )
     safe_file_name: str = field(
-        metadata={"description": "Sanitized PDF file name retained in the stored file name."},
+        metadata={"description": "在存储文件名中保留的已清理 PDF 文件名。"},
     )
     stored_path: Path = field(
-        metadata={"description": "Resolved local path where the upload bytes were written."},
+        metadata={"description": "写入上传字节后的本地解析路径。"},
     )
     source_uri: str = field(
-        metadata={"description": "URI passed into document parsing and index metadata."},
+        metadata={"description": "传入文档解析和索引元数据的 URI。"},
     )
     content_hash: str = field(
-        metadata={"description": "SHA-256 hash of uploaded bytes used for stored-name stability."},
+        metadata={"description": "用于稳定存储文件名的上传字节 SHA-256 哈希。"},
     )
-    size_bytes: int = field(metadata={"description": "Upload size in bytes."})
+    size_bytes: int = field(metadata={"description": "上传大小（字节）。"})
 
 
 class LocalUploadStorage:

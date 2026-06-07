@@ -18,7 +18,7 @@ class Retriever:
         embedding_client: EmbeddingClient,
         tenant_id: str = "default",
     ) -> None:
-        """将一个租户范围内的检索器绑定到一个索引和 embedding 提供方。"""
+        """将租户范围检索器绑定到索引和 embedding 提供方。"""
         self.local_index = local_index
         self.embedding_client = embedding_client
         self.tenant_id = tenant_id

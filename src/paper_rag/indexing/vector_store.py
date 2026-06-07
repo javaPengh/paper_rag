@@ -14,13 +14,13 @@ from paper_rag.schemas import Chunk, Document
 class VectorHit:
     """原始向量检索命中结果。"""
 
-    chunk_id: str = field(metadata={"description": "Chunk ID returned by vector search."})
+    chunk_id: str = field(metadata={"description": "向量搜索返回的 chunk ID。"})
     score: float = field(
-        metadata={"description": "Similarity score derived from the backend distance."},
+        metadata={"description": "由后端距离换算得到的相似度分数。"},
     )
     distance: float | None = field(
         default=None,
-        metadata={"description": "Raw vector backend distance when available."},
+        metadata={"description": "向量后端返回的原始距离（如有）。"},
     )
 
 
