@@ -70,64 +70,64 @@
 
 ## 4. Evaluation runner
 
-- [ ] 增加 `paper-rag eval` CLI 命令
-- [ ] 支持指定 dataset path
-- [ ] 支持指定 source directory
-- [ ] 支持指定 index directory
-- [ ] 支持 `--tenant-id`
-- [ ] 支持 `--local`
-- [ ] 支持 `--top-k`
-- [ ] 支持 `--chunk-size`
-- [ ] 支持 `--chunk-overlap`
-- [ ] 自动构建或复用本地 eval index
-- [ ] 对每个 eval case 执行 retrieval
-- [ ] 对每个 eval case 执行 answer generation
-- [ ] MVP 阶段优先支持 local/offline 评测
+- [x] 增加 `paper-rag eval` CLI 命令
+- [x] 支持指定 dataset path
+- [x] 支持指定 source directory
+- [x] 支持指定 index directory
+- [x] 支持 `--tenant-id`
+- [x] 支持 `--local`
+- [x] 支持 `--top-k`
+- [x] 支持 `--chunk-size`
+- [x] 支持 `--chunk-overlap`
+- [x] 自动构建或复用本地 eval index
+- [x] 对每个 eval case 执行 retrieval
+- [x] 对每个 eval case 执行 answer generation
+- [x] MVP 阶段优先支持 local/offline 评测
 
 ## 5. Retrieval 指标
 
-- [ ] 计算 retrieval hit@k
-- [ ] 判断 top-k 是否命中 `evidence[].doc_key`
-- [ ] 判断 top-k 是否命中 `evidence[]` page range
-- [ ] 判断 evidence 是否包含 `evidence[].terms`
-- [ ] 区分 answerable 与 unanswerable case 的 retrieval 期望
-- [ ] 输出 missed retrieval cases
-- [ ] 增加 retrieval metric 单元测试
+- [x] 计算 retrieval hit@k
+- [x] 判断 top-k 是否命中 `evidence[].doc_key`
+- [x] 判断 top-k 是否命中 `evidence[]` page range
+- [x] 判断 evidence 是否包含 `evidence[].terms`
+- [x] 区分 answerable 与 unanswerable case 的 retrieval 期望
+- [x] 输出 missed retrieval cases
+- [x] 增加 retrieval metric 单元测试
 
 ## 6. Answer / Citation / Refusal 指标
 
-- [ ] 判断 answerable 问题是否成功回答
-- [ ] 判断 unanswerable 问题是否正确拒答
-- [ ] 判断答案是否包含 citation
-- [ ] 判断 citation 是否命中 `evidence[].doc_key`
-- [ ] 判断 citation 是否命中 `evidence[]` page range
-- [ ] 判断答案是否包含 `answer_terms`
-- [ ] 判断 unanswerable 问题是否没有 citation
-- [ ] 输出 failed answer cases
-- [ ] 增加 answer/citation/refusal metric 单元测试
+- [x] 判断 answerable 问题是否成功回答
+- [x] 判断 unanswerable 问题是否正确拒答
+- [x] 判断答案是否包含 citation
+- [x] 判断 citation 是否命中 `evidence[].doc_key`
+- [x] 判断 citation 是否命中 `evidence[]` page range
+- [x] 判断答案是否包含 `answer_terms`
+- [x] 判断 unanswerable 问题是否没有 citation
+- [x] 输出 failed answer cases
+- [x] 增加 answer/citation/refusal metric 单元测试
 
 ## 7. 报告输出
 
-- [ ] 控制台输出 summary
-- [ ] 输出 case-level 明细
-- [ ] 支持保存 JSON report
-- [ ] 报告包含 retrieval 指标
-- [ ] 报告包含 answer 指标
-- [ ] 报告包含 citation 指标
-- [ ] 报告包含 refusal 指标
-- [ ] 报告包含失败样本 ID
-- [ ] 报告包含失败原因
+- [x] 控制台输出 summary
+- [x] 输出 case-level 明细
+- [x] 支持保存 JSON report
+- [x] 报告包含 retrieval 指标
+- [x] 报告包含 answer 指标
+- [x] 报告包含 citation 指标
+- [x] 报告包含 refusal 指标
+- [x] 报告包含失败样本 ID
+- [x] 报告包含失败原因
 
 ## 8. 文档与验收
 
-- [ ] 新增 `eval/README.md`
-- [ ] 说明如何人工审核 golden dataset
-- [ ] 说明如何运行 `paper-rag eval`
-- [ ] README 增加评测入口说明
-- [ ] 手动跑通 sample eval dataset
-- [ ] 记录一组可复现评测命令
-- [ ] 运行 `pytest`
-- [ ] 运行 `ruff check src tests scripts`
+- [x] 新增 `eval/README.md`
+- [x] 说明如何人工审核 golden dataset
+- [x] 说明如何运行 `paper-rag eval`
+- [x] README 增加评测入口说明
+- [x] 手动跑通 sample eval dataset
+- [x] 记录一组可复现评测命令
+- [x] 运行 `pytest`
+- [x] 运行 `ruff check src tests scripts`
 
 ## 9. 当前阶段暂不实现
 

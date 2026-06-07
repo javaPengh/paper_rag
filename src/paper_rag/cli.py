@@ -8,6 +8,12 @@ import typer
 from paper_rag import __version__
 from paper_rag.config import load_settings
 from paper_rag.embeddings import HashEmbeddingClient, OpenAIEmbeddingClient
+from paper_rag.evaluation import (
+    EvalRunConfig,
+    format_eval_run_result,
+    run_evaluation,
+    write_eval_json_report,
+)
 from paper_rag.exceptions import PaperRagError
 from paper_rag.indexing import LocalPaperIndex, build_index_from_directory
 from paper_rag.indexing.chunking import ChunkingConfig
@@ -186,6 +192,107 @@ def ask(
         raise typer.BadParameter(str(exc)) from exc
 
     typer.echo(format_answer(answer))
+
+
+@app.command("eval")
+def eval_command(
+    dataset_path: Annotated[
+        Path,
+        typer.Argument(
+            help="JSONL golden dataset 路径。",
+        ),
+    ] = Path("eval/datasets/golden.jsonl"),
+    source_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--source-dir",
+            file_okay=False,
+            dir_okay=True,
+            help="固定评测 PDF 所在目录。",
+        ),
+    ] = None,
+    index_dir: Annotated[
+        Path | None,
+        typer.Option("--index-dir", help="本地评测索引目录。"),
+    ] = None,
+    tenant_id: Annotated[
+        str,
+        typer.Option("--tenant-id", help="评测隔离使用的租户或工作区 ID。"),
+    ] = "eval",
+    local: Annotated[
+        bool,
+        typer.Option(
+            "--local/--api",
+            help="使用本地 hash embedding 和抽取式回答，或切换到 API provider。",
+        ),
+    ] = True,
+    top_k: Annotated[
+        int | None,
+        typer.Option("--top-k", min=1, help="每条 case 检索的证据 chunk 数。"),
+    ] = None,
+    chunk_size: Annotated[
+        int,
+        typer.Option("--chunk-size", min=1, help="chunk 的最大 token 数。"),
+    ] = 800,
+    chunk_overlap: Annotated[
+        int,
+        typer.Option("--chunk-overlap", min=0, help="相邻 chunk 重叠的 token 数。"),
+    ] = 120,
+    embedding_model: Annotated[
+        str | None,
+        typer.Option("--embedding-model", help="embedding 模型名称。"),
+    ] = None,
+    llm_model: Annotated[
+        str | None,
+        typer.Option("--llm-model", help="LLM 模型名称。"),
+    ] = None,
+    min_score: Annotated[
+        float,
+        typer.Option("--min-score", min=0.0, help="可用证据的最低检索分数。"),
+    ] = 0.05,
+    report_json: Annotated[
+        Path | None,
+        typer.Option("--report-json", help="可选的 JSON 评测报告输出路径。"),
+    ] = None,
+) -> None:
+    """运行 MVP 评测集，执行本地索引、检索和答案生成。"""
+    settings = load_settings()
+    target_index_dir = index_dir or Path(".paper_rag/eval_index")
+    effective_top_k = top_k if top_k is not None else settings.top_k
+    embedding_client = _make_embedding_client(
+        embedding_model=embedding_model,
+        local=local,
+    )
+    answer_generator = _make_answer_generator(
+        llm_model=llm_model or settings.llm_model,
+        local=local,
+        min_score=min_score,
+    )
+
+    try:
+        result = run_evaluation(
+            EvalRunConfig(
+                dataset_path=dataset_path,
+                source_dir=source_dir,
+                index_dir=target_index_dir,
+                tenant_id=tenant_id,
+                top_k=effective_top_k,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+            ),
+            embedding_client=embedding_client,
+            answer_generator=answer_generator,
+        )
+    except (PaperRagError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo(format_eval_run_result(result))
+    if report_json is not None:
+        try:
+            written_path = write_eval_json_report(result, report_json)
+        except OSError as exc:
+            raise typer.BadParameter(f"JSON report 写入失败: {exc}") from exc
+        typer.echo(f"JSON report: {written_path}")
 
 
 @app.command("list-docs")

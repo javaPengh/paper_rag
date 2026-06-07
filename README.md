@@ -87,6 +87,22 @@ paper-rag ask "论文中提出的 VSI-Bench 基准测试集包含了多少个问
 paper-rag ask "What is the capital of France?" --index-dir .paper_rag/manual_index --tenant-id default --local --top-k 3
 ```
 
+## 评测基线
+
+项目已经建立第一版人工 golden dataset，用来衡量后续 RAG 改动是否真的提升检索、
+回答、引用和拒答能力。评测语料位于 `eval/papers/`，评测集位于
+`eval/datasets/golden.jsonl`，文档短键映射位于
+`eval/datasets/golden.documents.json`。
+
+本地离线评测命令：
+
+```powershell
+paper-rag eval eval/datasets/golden.jsonl --source-dir eval/papers --index-dir .paper_rag/eval_index --tenant-id eval --local --top-k 3 --chunk-size 800 --chunk-overlap 120 --report-json .paper_rag/reports/eval_report.json
+```
+
+控制台输出适合快速查看；JSON report 才是每次优化后建议留档和对比的指标文件。
+字段说明、人工审核规则和可复现命令见 `eval/README.md`。
+
 ## Web Inspector 本地检验台
 
 Web Inspector 是当前阶段的开发/验收界面，用来查看本地索引状态、文档、chunk、问答结果和 citation 追溯。它通过 FastAPI 暴露薄 API 边界，不让前端直接依赖 CLI 输出格式。
@@ -146,3 +162,4 @@ $env:PAPER_RAG_EMBEDDING_MODEL="text-embedding-3-small"
 - `docs/task/01_cli_mvp.md`
 - `docs/task/01_cli_mvp_addendum_01_document_identity.md`
 - `docs/task/02_web_inspector_mvp.md`
+- `docs/task/03_evaluation_foundation.md`
