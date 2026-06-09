@@ -140,6 +140,7 @@ def build_index_from_directory(
 
     status = _write_status(
         local_index=local_index,
+        embedding_source=getattr(embedding_client, "source_name", None),
         embedding_model=embedding_client.model_name,
         tenant_id=tenant_id,
         errors=errors,
@@ -196,6 +197,7 @@ def _embed_chunks(
 def _write_status(
     *,
     local_index: LocalPaperIndex,
+    embedding_source: str | None,
     embedding_model: str,
     tenant_id: str,
     errors: list[ParseIssue],
@@ -234,6 +236,7 @@ def _write_status(
         index_dir=local_index.index_dir,
         document_count=len(documents),
         chunk_count=chunk_count,
+        embedding_source=embedding_source,
         embedding_model=embedding_model,
         built_at=built_at,
         updated_at=now,

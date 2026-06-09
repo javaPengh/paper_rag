@@ -42,6 +42,41 @@ class ModelOption(BaseModel):
     description: str = Field(description="说明该模型适用场景、来源或限制。")
 
 
+class ModelSourceOption(BaseModel):
+    """前端可选择的一个模型来源及其模型列表。"""
+
+    id: str = Field(description="前端提交给后端的模型来源 ID，例如 local、openai 或 siliconflow。")
+    label: str = Field(description="前端下拉框展示的模型来源名称。")
+    description: str = Field(description="说明该来源的调用方式、用途或限制。")
+    api_key_configured: bool = Field(description="后端是否已经为该来源配置 API 密钥。")
+    base_url_configured: bool = Field(description="后端是否已经为该来源配置基础 URL。")
+    models: list[ModelOption] = Field(
+        default_factory=list,
+        description="该来源下可供前端选择的模型列表。",
+    )
+
+
+class ModelSelectionCatalog(BaseModel):
+    """某一类模型的当前选择和所有可选来源。"""
+
+    source: str = Field(description="后端建议前端当前选中的模型来源。")
+    model: str | None = Field(
+        default=None,
+        description="后端建议前端当前选中的模型名或本地实现标识；外部模型未配置时为空。",
+    )
+    sources: list[ModelSourceOption] = Field(
+        default_factory=list,
+        description="该模型类别下可选择的来源列表。",
+    )
+
+
+class ModelCatalog(BaseModel):
+    """Web Inspector 消费的轻量模型选择 catalog。"""
+
+    embedding: ModelSelectionCatalog = Field(description="embedding 来源和模型选择 catalog。")
+    chat: ModelSelectionCatalog = Field(description="对话来源和模型选择 catalog。")
+
+
 class ComponentConfigField(BaseModel):
     """组件在 catalog 中公开的可配置字段。"""
 
@@ -68,7 +103,7 @@ class ComponentDescriptor(BaseModel):
     )
     default_model: str | None = Field(
         default=None,
-        description="未显式指定 model 时 registry 使用的默认模型。",
+        description="显式配置后可供调用方复用的当前模型；没有外部配置时为空。",
     )
     config_fields: list[ComponentConfigField] = Field(
         default_factory=list,
@@ -80,6 +115,10 @@ class ComponentSelection(BaseModel):
     """一次运行中某个组件的实际选择。"""
 
     id: str = Field(description="实际使用的组件 ID。")
+    source: str | None = Field(
+        default=None,
+        description="实际使用的模型来源；不依赖外部模型的组件可以为空。",
+    )
     model: str | None = Field(default=None, description="实际传给组件的模型名或本地模型标识。")
     parameters: dict[str, ConfigValue] = Field(
         default_factory=dict,

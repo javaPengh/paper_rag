@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from paper_rag.components import ComponentKind, get_component_registry
 from paper_rag.components.chunking import TokenWindowChunker
 from paper_rag.components.embedding import HashEmbedder, OpenAIEmbedder
 from paper_rag.components.generation import ExtractiveGenerator, OpenAIGenerator
 from paper_rag.components.reading import PdfReader
 from paper_rag.components.retrieval import VectorRetriever
+from paper_rag.config import Settings
 from paper_rag.domain import Chunk, Document, SearchResult
 from paper_rag.indexing import LocalPaperIndex
 from paper_rag.indexing.chunking import ChunkingConfig, chunk_pages
@@ -39,6 +42,77 @@ def test_component_registry_lists_five_component_kinds() -> None:
         "extractive_generator",
         "openai_generator",
     }
+
+
+def test_component_registry_exposes_model_source_catalog(monkeypatch) -> None:
+    """确认 registry 能按 embedding/chat 分别返回来源和模型列表。"""
+    monkeypatch.setenv("SILICONFLOW_API_KEY", "secret-key")
+    monkeypatch.setenv("EMBEDDING_SOURCE", "siliconflow")
+    monkeypatch.setenv("EMBEDDING_MODEL", "Qwen/Qwen3-Embedding-4B")
+    monkeypatch.setenv("CHAT_SOURCE", "siliconflow")
+    monkeypatch.setenv("CHAT_MODEL", "deepseek-ai/DeepSeek-V4-Pro")
+    monkeypatch.setenv("OPENAI_EMBEDDING_MODELS", "")
+    monkeypatch.setenv("OPENAI_CHAT_MODELS", "")
+    registry = get_component_registry()
+
+    catalog = registry.model_catalog()
+
+    assert catalog.embedding.source == "siliconflow"
+    assert catalog.embedding.model == "Qwen/Qwen3-Embedding-4B"
+    assert [source.id for source in catalog.embedding.sources] == ["siliconflow"]
+    siliconflow = next(source for source in catalog.chat.sources if source.id == "siliconflow")
+    assert siliconflow.api_key_configured is True
+    assert [model.id for model in siliconflow.models][:1] == ["deepseek-ai/DeepSeek-V4-Pro"]
+    assert "Qwen/Qwen3-Embedding-4B" not in [model.id for model in siliconflow.models]
+
+
+def test_component_registry_hides_unconfigured_external_sources() -> None:
+    """确认没有模型列表时，外部供应商不会被编造成前端可选来源。"""
+    registry = get_component_registry(Settings())
+
+    catalog = registry.model_catalog()
+
+    assert catalog.embedding.sources == []
+    assert catalog.embedding.source == ""
+    assert catalog.embedding.model is None
+    assert catalog.chat.sources == []
+    assert catalog.chat.source == ""
+    assert catalog.chat.model is None
+
+
+def test_external_components_require_explicit_source_model_and_credentials() -> None:
+    """确认外部组件缺少调用配置时直接报错，而不是使用默认供应商或模型。"""
+    registry = get_component_registry(Settings())
+
+    with pytest.raises(ValueError, match="缺少 embedding 模型来源"):
+        registry.create_embedder("openai_embedder")
+    with pytest.raises(ValueError, match="缺少对话模型来源"):
+        registry.create_generator("openai_generator")
+
+    source_only_registry = get_component_registry(
+        Settings(
+            embedding_source="siliconflow",
+            embedding_model="Qwen/Qwen3-Embedding-4B",
+            chat_source="siliconflow",
+            llm_model="deepseek-ai/DeepSeek-V4-Pro",
+        )
+    )
+    with pytest.raises(ValueError, match="SILICONFLOW_API_KEY"):
+        source_only_registry.create_embedder("openai_embedder")
+    with pytest.raises(ValueError, match="SILICONFLOW_API_KEY"):
+        source_only_registry.create_generator("openai_generator")
+
+    base_url_missing_registry = get_component_registry(
+        Settings(
+            embedding_source="siliconflow",
+            embedding_model="Qwen/Qwen3-Embedding-4B",
+            chat_source="siliconflow",
+            llm_model="deepseek-ai/DeepSeek-V4-Pro",
+            siliconflow_api_key="secret-key",
+        )
+    )
+    with pytest.raises(ValueError, match="SILICONFLOW_BASE_URL"):
+        base_url_missing_registry.create_embedder("openai_embedder")
 
 
 def test_embedder_components_keep_existing_embedding_protocol() -> None:

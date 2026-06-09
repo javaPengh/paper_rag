@@ -347,6 +347,10 @@ class IndexStatus(BaseModel):
         default=None,
         description="用于创建当前向量索引的 embedding 模型。",
     )
+    embedding_source: str | None = Field(
+        default=None,
+        description="用于创建当前向量索引的 embedding 模型来源。",
+    )
     built_at: datetime | None = Field(
         default=None,
         description="索引首次构建时的 UTC 时间戳。",

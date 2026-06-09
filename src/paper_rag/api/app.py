@@ -26,6 +26,9 @@ from paper_rag.api.schemas import (
     HealthResponse,
     IndexingSummaryResponse,
     IndexStatusResponse,
+    ModelCatalogResponse,
+    ModelSelectionCatalogResponse,
+    ModelSourceOptionResponse,
     RuntimeConfigResponse,
     StoredUploadResponse,
     UploadIndexResponse,
@@ -79,15 +82,13 @@ def create_app() -> FastAPI:
             upload_dir=settings.upload_dir,
             upload_max_bytes=settings.upload_max_bytes,
             top_k=settings.top_k,
+            embedding_source=settings.embedding_source,
             embedding_model=_default_model(registry, "openai_embedder") or settings.embedding_model,
+            chat_source=settings.chat_source,
+            chat_model=_default_model(registry, "openai_generator") or settings.llm_model,
             llm_model=_default_model(registry, "openai_generator") or settings.llm_model,
-            local_embedding_model=_default_model(registry, "hash_embedder")
-            or "hash-embedding-v1",
-            local_answer_model=_default_model(registry, "extractive_generator")
-            or "extractive-local-v1",
-            api_key_configured=bool(settings.openai_api_key),
-            base_url_configured=bool(settings.openai_base_url),
-            recommended_local_index_dir=".paper_rag/manual_index",
+            api_key_configured=any(source.api_key for source in settings.api_model_sources()),
+            base_url_configured=any(source.base_url for source in settings.api_model_sources()),
             recommended_api_index_dir=".paper_rag/api_index",
         )
 
@@ -156,10 +157,6 @@ def create_app() -> FastAPI:
             str | None,
             Form(description="本地索引目录，默认使用 PAPER_RAG_INDEX_DIR。"),
         ] = None,
-        local: Annotated[
-            bool,
-            Form(description="使用确定性的本地哈希 embedding 进行离线检查。"),
-        ] = False,
         chunk_size: Annotated[
             int,
             Form(ge=1, description="chunk 的最大 token 数。"),
@@ -171,6 +168,10 @@ def create_app() -> FastAPI:
         embedding_model: Annotated[
             str | None,
             Form(description="embedding 模型名称。"),
+        ] = None,
+        embedding_source: Annotated[
+            str | None,
+            Form(description="embedding 模型来源。"),
         ] = None,
     ) -> UploadIndexResponse:
         """保存一个上传的 PDF，并同步触发本地索引流水线。"""
@@ -192,8 +193,8 @@ def create_app() -> FastAPI:
                 stored_upload.stored_path.parent,
                 index_dir=Path(index_dir) if index_dir else settings.index_dir,
                 embedding_client=_make_embedding_client(
+                    embedding_source=embedding_source,
                     embedding_model=embedding_model,
-                    local=local,
                     registry=registry,
                 ),
                 tenant_id=tenant_id,
@@ -227,34 +228,32 @@ def create_app() -> FastAPI:
         settings = load_settings()
         registry = get_component_registry(settings)
         local_index = LocalPaperIndex(request.index_dir or settings.index_dir)
-        status = local_index.store.load_status()
-        local_mode = request.local
-        if status and status.embedding_model and status.embedding_model.startswith("hash-"):
-            local_mode = True
 
-        embedding_client = _make_embedding_client(
-            embedding_model=request.embedding_model or (status.embedding_model if status else None),
-            local=local_mode,
-            registry=registry,
-        )
-        retriever = registry.create_retriever(
-            local_index=local_index,
-            embedding_client=embedding_client,
-            tenant_id=request.tenant_id,
-            parameters={"top_k": request.top_k if request.top_k is not None else settings.top_k},
-        )
         try:
+            embedding_client = _make_embedding_client(
+                embedding_source=request.embedding_source,
+                embedding_model=request.embedding_model,
+                registry=registry,
+            )
+            retriever = registry.create_retriever(
+                local_index=local_index,
+                embedding_client=embedding_client,
+                tenant_id=request.tenant_id,
+                parameters={
+                    "top_k": request.top_k if request.top_k is not None else settings.top_k
+                },
+            )
             results = retriever.retrieve(
                 request.question,
                 top_k=request.top_k if request.top_k is not None else settings.top_k,
             )
             answer = _make_answer_generator(
-                llm_model=request.llm_model or settings.llm_model,
-                local=local_mode,
+                chat_source=request.chat_source,
+                llm_model=request.chat_model or request.llm_model or settings.llm_model,
                 min_score=request.min_score,
                 registry=registry,
             ).generate(request.question, results)
-        except PaperRagError as exc:
+        except (PaperRagError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         used_chunk_ids = set(answer.evidence_chunk_ids)
@@ -312,6 +311,7 @@ def _index_status_response(
         index_dir=local_index.index_dir,
         document_count=len(local_index.store.list_documents(tenant_id=tenant_id)),
         chunk_count=local_index.store.count_chunks(tenant_id=tenant_id),
+        embedding_source=status.embedding_source,
         embedding_model=status.embedding_model,
         built_at=status.built_at,
         updated_at=status.updated_at,
@@ -321,35 +321,42 @@ def _index_status_response(
 
 def _make_embedding_client(
     *,
+    embedding_source: str | None,
     embedding_model: str | None,
-    local: bool,
     registry: ComponentRegistry | None = None,
 ) -> Embedder:
     """根据 API 参数和设置创建所需的 embedding 边界。"""
     settings = load_settings()
     active_registry = registry or get_component_registry(settings)
-    model_name = embedding_model or ("hash-embedding-v1" if local else settings.embedding_model)
-    component_id = active_registry.resolve_embedder_id(local=local, model_name=model_name)
+    source_name = embedding_source or settings.embedding_source
+    model_name = embedding_model or settings.embedding_model
+    component_id = active_registry.resolve_embedder_id(
+        source=source_name,
+        model_name=model_name,
+    )
     return active_registry.create_embedder(
         component_id,
+        source=source_name,
         model_name=model_name,
     )
 
 
 def _make_answer_generator(
     *,
-    llm_model: str,
-    local: bool,
+    chat_source: str | None,
+    llm_model: str | None,
     min_score: float,
     registry: ComponentRegistry | None = None,
 ) -> Generator:
-    """创建本地抽取式生成器或配置好的 LLM 生成器。"""
+    """创建配置好的对话模型生成器。"""
     settings = load_settings()
     active_registry = registry or get_component_registry(settings)
-    component_id = active_registry.resolve_generator_id(local=local)
+    source_name = chat_source or settings.chat_source
+    component_id = active_registry.resolve_generator_id(source=source_name)
     return active_registry.create_generator(
         component_id,
-        model_name=None if local else llm_model,
+        source=source_name,
+        model_name=llm_model,
         parameters={"min_score": min_score},
     )
 
@@ -358,6 +365,7 @@ def _component_catalog_response(registry: ComponentRegistry) -> ComponentCatalog
     """把 registry catalog 转换为 API DTO 分组响应。"""
     grouped = registry.grouped_descriptors()
     return ComponentCatalogResponse(
+        model_catalog=_model_catalog_response(registry),
         reader=[
             _component_descriptor_response(descriptor)
             for descriptor in grouped[ComponentKind.READER]
@@ -377,6 +385,41 @@ def _component_catalog_response(registry: ComponentRegistry) -> ComponentCatalog
         generator=[
             _component_descriptor_response(descriptor)
             for descriptor in grouped[ComponentKind.GENERATOR]
+        ],
+    )
+
+
+def _model_catalog_response(registry: ComponentRegistry) -> ModelCatalogResponse:
+    """把 registry 中的模型来源 catalog 转换为 API DTO。"""
+    catalog = registry.model_catalog()
+    return ModelCatalogResponse(
+        embedding=_model_selection_catalog_response(catalog.embedding),
+        chat=_model_selection_catalog_response(catalog.chat),
+    )
+
+
+def _model_selection_catalog_response(selection) -> ModelSelectionCatalogResponse:
+    """把某一类模型选择 catalog 转换为 API DTO。"""
+    return ModelSelectionCatalogResponse(
+        source=selection.source,
+        model=selection.model,
+        sources=[
+            ModelSourceOptionResponse(
+                id=source.id,
+                label=source.label,
+                description=source.description,
+                api_key_configured=source.api_key_configured,
+                base_url_configured=source.base_url_configured,
+                models=[
+                    ComponentModelOptionResponse(
+                        id=model.id,
+                        label=model.label,
+                        description=model.description,
+                    )
+                    for model in source.models
+                ],
+            )
+            for source in selection.sources
         ],
     )
 
@@ -416,7 +459,7 @@ def _component_descriptor_response(
 
 
 def _default_model(registry: ComponentRegistry, component_id: str) -> str | None:
-    """读取 registry descriptor 中的默认模型，未知组件返回 None。"""
+    """读取 registry descriptor 中显式配置后的当前模型，未知组件返回 None。"""
     try:
         return registry.get_descriptor(component_id).default_model
     except ValueError:

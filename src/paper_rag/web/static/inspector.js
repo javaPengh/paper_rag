@@ -20,7 +20,8 @@ const el = {
   uploadFile: document.querySelector("#upload-file"),
   uploadChunkSize: document.querySelector("#upload-chunk-size"),
   uploadChunkOverlap: document.querySelector("#upload-chunk-overlap"),
-  uploadMode: document.querySelector("#upload-mode"),
+  uploadEmbeddingSource: document.querySelector("#upload-embedding-source"),
+  uploadEmbeddingModel: document.querySelector("#upload-embedding-model"),
   uploadButton: document.querySelector("#upload-button"),
   uploadOutput: document.querySelector("#upload-output"),
   documentCount: document.querySelector("#document-count"),
@@ -31,7 +32,10 @@ const el = {
   askForm: document.querySelector("#ask-form"),
   question: document.querySelector("#question"),
   topK: document.querySelector("#top-k"),
-  askMode: document.querySelector("#ask-mode"),
+  askEmbeddingSource: document.querySelector("#ask-embedding-source"),
+  askEmbeddingModel: document.querySelector("#ask-embedding-model"),
+  askChatSource: document.querySelector("#ask-chat-source"),
+  askChatModel: document.querySelector("#ask-chat-model"),
   answerOutput: document.querySelector("#answer-output"),
   citationList: document.querySelector("#citation-list"),
   evidenceList: document.querySelector("#evidence-list"),
@@ -53,18 +57,12 @@ function workspacePayload() {
   // 操作租户和索引工作区的 POST 接口共用的 JSON 请求基础载荷。
   const payload = {
     tenant_id: el.tenantId.value.trim() || "default",
-    local: selectedMode(el.askMode) === "local",
   };
   const indexDir = el.indexDir.value.trim();
   if (indexDir) {
     payload.index_dir = indexDir;
   }
   return payload;
-}
-
-function selectedMode(selectNode) {
-  // 模式下拉框使用稳定小枚举，显示文本再呈现当前配置的模型名。
-  return selectNode.value === "api" ? "api" : "local";
 }
 
 function setSelectOptions(selectNode, options, selectedValue) {
@@ -79,59 +77,89 @@ function setSelectOptions(selectNode, options, selectedValue) {
   selectNode.value = selectedValue;
 }
 
-function componentDescriptor(kind, componentId) {
-  // 从后端 catalog 中找到组件描述，找不到时让调用方使用兼容默认值。
-  const catalog = state.components || {};
-  const descriptors = catalog[kind] || [];
-  return descriptors.find((descriptor) => descriptor.id === componentId) || null;
+function selectedSelectValue(selectNode, fallback) {
+  // 读取下拉框当前值；还未加载选项时使用调用方提供的安全默认值。
+  return selectNode.value || fallback;
 }
 
-function componentModelLabel(kind, componentId, fallbackModel) {
-  // 下拉框展示的模型名来自 registry 暴露的默认模型和模型列表。
-  const descriptor = componentDescriptor(kind, componentId);
-  const modelId = descriptor?.default_model || fallbackModel;
-  const option = descriptor?.models?.find((item) => item.id === modelId);
-  return option?.label || modelId;
+function initialSourceValue(selectNode, kind, fallback) {
+  // 首次加载时遵循后端显式配置的当前来源；用户手动改过以后保留当前选择。
+  if (selectNode.dataset.loaded === "true") {
+    return selectedSelectValue(selectNode, fallback);
+  }
+  return modelSelection(kind)?.source || fallback;
 }
 
-function updateModeOptions() {
-  // 显示 registry 返回的真实模型名，让用户明确每种模式会调用什么。
-  const config = state.config || {};
-  const localEmbedding = componentModelLabel(
-    "embedder",
-    "hash_embedder",
-    config.local_embedding_model || "hash-embedding-v1",
-  );
-  const localAnswer = componentModelLabel(
-    "generator",
-    "extractive_generator",
-    config.local_answer_model || "extractive-local-v1",
-  );
-  const apiEmbedding = componentModelLabel(
-    "embedder",
-    "openai_embedder",
-    config.embedding_model || "text-embedding-3-small",
-  );
-  const apiLlm = componentModelLabel(
-    "generator",
-    "openai_generator",
-    config.llm_model || "gpt-4.1-mini",
-  );
+function modelSelection(kind) {
+  // `/api/components` 的 model_catalog 是模型来源和模型列表的唯一前端数据源。
+  return state.components?.model_catalog?.[kind] || null;
+}
+
+function modelSource(kind, sourceId) {
+  // 按来源 ID 查找模型列表；找不到时回退到该类别的第一个来源。
+  const selection = modelSelection(kind);
+  const sources = selection?.sources || [];
+  return sources.find((source) => source.id === sourceId) || sources[0] || null;
+}
+
+function sourceOptions(kind) {
+  // 将后端来源 catalog 转换成 select 选项。
+  return (modelSelection(kind)?.sources || []).map((source) => ({
+    value: source.id,
+    label: source.label,
+  }));
+}
+
+function modelOptions(kind, sourceId) {
+  // 将某个来源下的模型列表转换成 select 选项。
+  const source = modelSource(kind, sourceId);
+  return (source?.models || []).map((model) => ({
+    value: model.id,
+    label: model.label,
+  }));
+}
+
+function selectedModel(kind, sourceId, fallback) {
+  // 同一来源下优先保留用户已选模型；外部模型没有显式配置时不自动选择第一个候选。
+  const selection = modelSelection(kind);
+  const source = modelSource(kind, sourceId);
+  const models = source?.models || [];
+  if (models.some((model) => model.id === fallback)) {
+    return fallback;
+  }
+  if (selection?.source === sourceId && models.some((model) => model.id === selection.model)) {
+    return selection.model;
+  }
+  return "";
+}
+
+function updateModelControls() {
+  // 重建来源和模型下拉框；首次加载使用后端显式配置的当前来源和模型。
+  const uploadSource = initialSourceValue(el.uploadEmbeddingSource, "embedding", "");
+  setSelectOptions(el.uploadEmbeddingSource, sourceOptions("embedding"), uploadSource);
+  el.uploadEmbeddingSource.dataset.loaded = "true";
   setSelectOptions(
-    el.uploadMode,
-    [
-      { value: "local", label: `Local embedding (${localEmbedding})` },
-      { value: "api", label: `API embedding (${apiEmbedding})` },
-    ],
-    selectedMode(el.uploadMode),
+    el.uploadEmbeddingModel,
+    modelOptions("embedding", el.uploadEmbeddingSource.value),
+    selectedModel("embedding", el.uploadEmbeddingSource.value, el.uploadEmbeddingModel.value),
   );
+
+  const askEmbeddingSource = initialSourceValue(el.askEmbeddingSource, "embedding", "");
+  setSelectOptions(el.askEmbeddingSource, sourceOptions("embedding"), askEmbeddingSource);
+  el.askEmbeddingSource.dataset.loaded = "true";
   setSelectOptions(
-    el.askMode,
-    [
-      { value: "local", label: `Local answer (${localEmbedding} + ${localAnswer})` },
-      { value: "api", label: `API models (${apiEmbedding} + ${apiLlm})` },
-    ],
-    selectedMode(el.askMode),
+    el.askEmbeddingModel,
+    modelOptions("embedding", el.askEmbeddingSource.value),
+    selectedModel("embedding", el.askEmbeddingSource.value, el.askEmbeddingModel.value),
+  );
+
+  const askChatSource = initialSourceValue(el.askChatSource, "chat", "");
+  setSelectOptions(el.askChatSource, sourceOptions("chat"), askChatSource);
+  el.askChatSource.dataset.loaded = "true";
+  setSelectOptions(
+    el.askChatModel,
+    modelOptions("chat", el.askChatSource.value),
+    selectedModel("chat", el.askChatSource.value, el.askChatModel.value),
   );
 }
 
@@ -173,6 +201,7 @@ function setStatusGrid(status) {
     ["Tenant", status.tenant_id],
     ["Documents", status.document_count],
     ["Chunks", status.chunk_count],
+    ["Source", status.embedding_source || "none"],
     ["Model", status.embedding_model || "none"],
     ["Index dir", status.index_dir],
     ["Updated", status.updated_at || "none"],
@@ -411,7 +440,7 @@ async function loadRuntimeConfig() {
     ]);
     state.config = config;
     state.components = components;
-    updateModeOptions();
+    updateModelControls();
     el.topK.value = String(config.top_k || 3);
     const keyState = config.api_key_configured ? "API key configured" : "API key missing";
     el.serviceStatus.textContent = `${el.serviceStatus.textContent} | ${keyState}`;
@@ -454,9 +483,11 @@ async function uploadDocument(event) {
   }
 
   const formData = new FormData();
+  const embeddingSource = selectedSelectValue(el.uploadEmbeddingSource, "");
   formData.append("file", file);
   formData.append("tenant_id", el.tenantId.value.trim() || "default");
-  formData.append("local", selectedMode(el.uploadMode) === "local" ? "true" : "false");
+  formData.append("embedding_source", embeddingSource);
+  formData.append("embedding_model", selectedSelectValue(el.uploadEmbeddingModel, ""));
   formData.append("chunk_size", String(Number(el.uploadChunkSize.value || 800)));
   formData.append("chunk_overlap", String(Number(el.uploadChunkOverlap.value || 120)));
   const indexDir = el.indexDir.value.trim();
@@ -520,6 +551,10 @@ async function askQuestion(event) {
     ...workspacePayload(),
     question,
     top_k: Number(el.topK.value || 3),
+    embedding_source: selectedSelectValue(el.askEmbeddingSource, ""),
+    embedding_model: selectedSelectValue(el.askEmbeddingModel, ""),
+    chat_source: selectedSelectValue(el.askChatSource, ""),
+    chat_model: selectedSelectValue(el.askChatModel, ""),
   };
 
   try {
@@ -540,6 +575,9 @@ el.workspaceForm.addEventListener("submit", (event) => {
 el.indexDir.addEventListener("change", loadWorkspace);
 el.tenantId.addEventListener("change", loadWorkspace);
 el.reloadChunks.addEventListener("click", loadChunks);
+el.uploadEmbeddingSource.addEventListener("change", updateModelControls);
+el.askEmbeddingSource.addEventListener("change", updateModelControls);
+el.askChatSource.addEventListener("change", updateModelControls);
 el.uploadForm.addEventListener("submit", uploadDocument);
 el.askForm.addEventListener("submit", askQuestion);
 

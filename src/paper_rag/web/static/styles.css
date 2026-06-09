@@ -342,7 +342,31 @@ label span {
 
 .ask-controls {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(90px, 130px) auto;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.ask-control-group {
+  min-width: 0;
+}
+
+.ask-control-group h3 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.ask-control-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.9fr) minmax(180px, 1.2fr);
+  gap: 10px;
+}
+
+.ask-submit-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 120px) auto;
   gap: 10px;
   align-items: end;
   justify-content: end;
@@ -421,6 +445,8 @@ label span {
   .workspace-form,
   .workspace,
   .ask-controls,
+  .ask-control-row,
+  .ask-submit-row,
   .upload-controls {
     grid-template-columns: 1fr;
   }

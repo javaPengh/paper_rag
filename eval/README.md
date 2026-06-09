@@ -104,11 +104,21 @@ paper-rag eval eval\datasets\golden.jsonl `
   --index-dir .paper_rag\eval_index_api `
   --tenant-id eval `
   --api `
+  --embedding-source siliconflow `
+  --embedding-model Qwen/Qwen3-Embedding-4B `
+  --chat-source siliconflow `
+  --chat-model deepseek-ai/DeepSeek-V4-Pro `
   --top-k 3 `
   --chunk-size 800 `
   --chunk-overlap 120 `
   --report-json .paper_rag\reports\eval_report_api.json
 ```
+
+`EMBEDDING_SOURCE` / `CHAT_SOURCE` 决定当前选中的供应商，`EMBEDDING_MODEL` / `CHAT_MODEL`
+决定当前选中的模型。它们不是兜底默认值，评测使用外部 API 时缺少任一项都会直接报错。前端和 CLI 可选模型来自 `SILICONFLOW_*_MODELS`、`OPENAI_*_MODELS`
+这类列表变量；新增同一供应商下的模型时追加到列表即可，原模型仍会保留。
+如果某个来源的某类模型列表为空，且没有为该类别配置当前选中模型，该来源不会出现在对应下拉框中。
+不同 embedding 来源或模型应使用不同 `--index-dir`，否则向量空间会混在一起，评测结果不可比。
 
 ## JSON Report 字段说明
 
@@ -170,9 +180,9 @@ report 用于后续回归对比、人工审核和脚本分析。
 - `chunker.id`：本次切分页面文本使用的 Chunker 组件。
 - `chunker.parameters.chunk_size`：构建索引时使用的 chunk token 窗口大小。
 - `chunker.parameters.chunk_overlap`：相邻 chunk 之间重复的 token 数。
-- `embedder.id` / `embedder.model`：文档和问题 embedding 使用的组件与模型。
+- `embedder.id` / `embedder.source` / `embedder.model`：文档和问题 embedding 使用的组件、来源与模型。
 - `retriever.id` / `retriever.parameters.top_k`：证据召回使用的组件与 Top-k。
-- `generator.id` / `generator.model`：答案生成使用的组件与模型。
+- `generator.id` / `generator.source` / `generator.model`：答案生成使用的组件、来源与模型。
 - `generator.parameters.min_score`：证据进入答案生成前的最低检索分数。
 
 `cases[]` 常用字段：

@@ -19,10 +19,13 @@ from paper_rag.components.types import (
     ComponentSelection,
     ConfigFieldType,
     ConfigValue,
+    ModelCatalog,
     ModelOption,
+    ModelSelectionCatalog,
+    ModelSourceOption,
     RagPipelineConfig,
 )
-from paper_rag.config import Settings, load_settings
+from paper_rag.config import ApiModelSourceConfig, Settings, load_settings
 from paper_rag.indexing.chunking import ChunkingConfig
 from paper_rag.indexing.local_index import LocalPaperIndex
 from paper_rag.qa.answering import OpenAIChatClient
@@ -42,7 +45,7 @@ class ComponentRegistry:
     """集中注册当前可用 RAG 组件，并负责按配置创建实例。"""
 
     def __init__(self, settings: Settings | None = None) -> None:
-        """绑定运行时设置，以便工厂读取默认模型和 OpenAI 兼容端点。"""
+        """绑定运行时设置，以便工厂读取显式模型配置和 OpenAI 兼容端点。"""
         self.settings = settings or load_settings()
         self._descriptors = _build_descriptors(self.settings)
 
@@ -66,6 +69,60 @@ class ComponentRegistry:
             )
         }
 
+    def model_catalog(self) -> ModelCatalog:
+        """返回前端选择 embedding 和对话模型所需的轻量来源 catalog。"""
+        embedding_sources = [
+            _api_model_source_option(
+                source,
+                models=source.embedding_models,
+                description="该来源下可用于文档和查询向量化的 embedding 模型。",
+            )
+            for source in self.settings.api_model_sources()
+            if source.embedding_models
+            or (
+                self.settings.embedding_source == source.id
+                and self.settings.embedding_model is not None
+            )
+        ]
+        chat_sources = [
+            _api_model_source_option(
+                source,
+                models=source.chat_models,
+                description="该来源下可用于基于证据生成答案的对话模型。",
+            )
+            for source in self.settings.api_model_sources()
+            if source.chat_models
+            or (self.settings.chat_source == source.id and self.settings.llm_model is not None)
+        ]
+        embedding_default_source = _catalog_default_source(
+            self.settings.embedding_source,
+            sources=embedding_sources,
+        )
+        chat_default_source = _catalog_default_source(
+            self.settings.chat_source,
+            sources=chat_sources,
+        )
+        return ModelCatalog(
+            embedding=ModelSelectionCatalog(
+                source=embedding_default_source,
+                model=_catalog_default_model(
+                    embedding_default_source,
+                    self.settings.embedding_model,
+                    sources=embedding_sources,
+                ),
+                sources=embedding_sources,
+            ),
+            chat=ModelSelectionCatalog(
+                source=chat_default_source,
+                model=_catalog_default_model(
+                    chat_default_source,
+                    self.settings.llm_model,
+                    sources=chat_sources,
+                ),
+                sources=chat_sources,
+            ),
+        )
+
     def get_descriptor(self, component_id: str) -> ComponentDescriptor:
         """按 ID 返回组件描述；未知 ID 会抛出 ValueError 以暴露配置错误。"""
         try:
@@ -73,15 +130,24 @@ class ComponentRegistry:
         except KeyError as exc:
             raise ValueError(f"Unknown RAG component: {component_id}") from exc
 
-    def resolve_embedder_id(self, *, local: bool, model_name: str | None = None) -> str:
-        """根据本地模式和模型名推导应该使用的 Embedder 组件 ID。"""
-        if local or (model_name is not None and model_name.startswith("hash-")):
+    def resolve_embedder_id(
+        self,
+        *,
+        source: str | None = None,
+        model_name: str | None = None,
+    ) -> str:
+        """根据显式来源和模型名推导应该使用的 Embedder 组件 ID。"""
+        if model_name is not None and model_name.startswith("hash-"):
             return DEFAULT_HASH_EMBEDDER_ID
         return DEFAULT_OPENAI_EMBEDDER_ID
 
-    def resolve_generator_id(self, *, local: bool) -> str:
-        """根据本地模式推导应该使用的 Generator 组件 ID。"""
-        return DEFAULT_EXTRACTIVE_GENERATOR_ID if local else DEFAULT_OPENAI_GENERATOR_ID
+    def resolve_generator_id(self, *, source: str | None = None) -> str:
+        """根据显式来源推导应该使用的 Generator 组件 ID。"""
+        if source is None:
+            return DEFAULT_OPENAI_GENERATOR_ID
+        if source == "extractive":
+            return DEFAULT_EXTRACTIVE_GENERATOR_ID
+        return DEFAULT_OPENAI_GENERATOR_ID
 
     def create_reader(
         self,
@@ -119,6 +185,7 @@ class ComponentRegistry:
         self,
         component_id: str,
         *,
+        source: str | None = None,
         model_name: str | None = None,
         parameters: Mapping[str, ConfigValue] | None = None,
     ) -> Embedder:
@@ -131,10 +198,21 @@ class ComponentRegistry:
                 dimensions=int(params.get("dimensions", 64)),
             )
         if component_id == DEFAULT_OPENAI_EMBEDDER_ID:
+            source_name = _required_config_value(
+                source or self.settings.embedding_source,
+                "缺少 embedding 模型来源：请配置 EMBEDDING_SOURCE 或传入 --embedding-source。",
+            )
+            model_name = _required_config_value(
+                model_name or self.settings.embedding_model,
+                "缺少 embedding 模型：请配置 EMBEDDING_MODEL 或传入 --embedding-model。",
+            )
+            model_source = self._api_model_source(source_name)
+            _ensure_api_source_ready(model_source)
             return OpenAIEmbedder(
-                model_name=model_name or self.settings.embedding_model,
-                api_key=self.settings.openai_api_key,
-                base_url=self.settings.openai_base_url,
+                model_name=model_name,
+                api_key=model_source.api_key,
+                base_url=model_source.base_url,
+                source_name=model_source.id,
                 max_retries=int(params.get("max_retries", 2)),
                 retry_delay_seconds=float(params.get("retry_delay_seconds", 1.0)),
             )
@@ -164,6 +242,7 @@ class ComponentRegistry:
         self,
         component_id: str,
         *,
+        source: str | None = None,
         model_name: str | None = None,
         parameters: Mapping[str, ConfigValue] | None = None,
     ) -> Generator:
@@ -178,11 +257,22 @@ class ComponentRegistry:
                 max_evidence_items=int(params.get("max_evidence_items", 3)),
             )
         if component_id == DEFAULT_OPENAI_GENERATOR_ID:
+            source_name = _required_config_value(
+                source or self.settings.chat_source,
+                "缺少对话模型来源：请配置 CHAT_SOURCE 或传入 --chat-source。",
+            )
+            model_name = _required_config_value(
+                model_name or self.settings.llm_model,
+                "缺少对话模型：请配置 CHAT_MODEL 或传入 --chat-model。",
+            )
+            model_source = self._api_model_source(source_name)
+            _ensure_api_source_ready(model_source)
             return OpenAIGenerator(
                 chat_client=OpenAIChatClient(
-                    model_name=model_name or self.settings.llm_model,
-                    api_key=self.settings.openai_api_key,
-                    base_url=self.settings.openai_base_url,
+                    model_name=model_name,
+                    api_key=model_source.api_key,
+                    base_url=model_source.base_url,
+                    source_name=model_source.id,
                 ),
                 min_score=min_score,
             )
@@ -191,8 +281,9 @@ class ComponentRegistry:
     def build_pipeline_config(
         self,
         *,
-        local: bool,
+        embedding_source: str | None = None,
         embedding_model: str | None = None,
+        chat_source: str | None = None,
         llm_model: str | None = None,
         chunk_size: int = 800,
         chunk_overlap: int = 120,
@@ -201,21 +292,27 @@ class ComponentRegistry:
         min_score: float = 0.05,
     ) -> RagPipelineConfig:
         """构建可写入日志或评测报告的五类组件配置快照。"""
-        embedder_id = self.resolve_embedder_id(local=local, model_name=embedding_model)
-        generator_id = self.resolve_generator_id(local=local)
-        embedder_model = (
-            embedding_model
-            or (
-                DEFAULT_HASH_EMBEDDING_MODEL
-                if embedder_id == DEFAULT_HASH_EMBEDDER_ID
-                else self.settings.embedding_model
-            )
+        selected_embedding_source = _required_config_value(
+            embedding_source or self.settings.embedding_source,
+            "缺少 embedding 模型来源：请配置 EMBEDDING_SOURCE 或传入 --embedding-source。",
         )
-        generator_model = (
-            DEFAULT_EXTRACTIVE_MODEL
-            if generator_id == DEFAULT_EXTRACTIVE_GENERATOR_ID
-            else (llm_model or self.settings.llm_model)
+        selected_chat_source = _required_config_value(
+            chat_source or self.settings.chat_source,
+            "缺少对话模型来源：请配置 CHAT_SOURCE 或传入 --chat-source。",
         )
+        embedder_model = _required_config_value(
+            embedding_model or self.settings.embedding_model,
+            "缺少 embedding 模型：请配置 EMBEDDING_MODEL 或传入 --embedding-model。",
+        )
+        generator_model = _required_config_value(
+            llm_model or self.settings.llm_model,
+            "缺少对话模型：请配置 CHAT_MODEL 或传入 --chat-model。",
+        )
+        embedder_id = self.resolve_embedder_id(
+            source=selected_embedding_source,
+            model_name=embedding_model,
+        )
+        generator_id = self.resolve_generator_id(source=selected_chat_source)
         return RagPipelineConfig(
             reader=ComponentSelection(
                 id=DEFAULT_READER_ID,
@@ -229,13 +326,18 @@ class ComponentRegistry:
                     "encoding_name": "cl100k_base",
                 },
             ),
-            embedder=ComponentSelection(id=embedder_id, model=embedder_model),
+            embedder=ComponentSelection(
+                id=embedder_id,
+                source=selected_embedding_source,
+                model=embedder_model,
+            ),
             retriever=ComponentSelection(
                 id=DEFAULT_RETRIEVER_ID,
                 parameters={"top_k": top_k},
             ),
             generator=ComponentSelection(
                 id=generator_id,
+                source=selected_chat_source,
                 model=generator_model,
                 parameters={"min_score": min_score},
             ),
@@ -248,6 +350,10 @@ class ComponentRegistry:
             raise ValueError(
                 f"Component {component_id} is {descriptor.kind.value}, expected {kind.value}."
             )
+
+    def _api_model_source(self, source_id: str):
+        """读取外部模型来源配置，并在来源不存在时直接抛出明确错误。"""
+        return self.settings.api_model_source(source_id)
 
 
 def get_component_registry(settings: Settings | None = None) -> ComponentRegistry:
@@ -334,9 +440,11 @@ def _build_descriptors(settings: Settings) -> dict[str, ComponentDescriptor]:
             label="OpenAI Embedder",
             description="OpenAI 兼容 embedding provider，密钥和 base URL 只在后端读取。",
             models=_model_options(
-                settings.embedding_model,
-                "text-embedding-3-small",
-                "text-embedding-3-large",
+                *[
+                    model
+                    for source in settings.api_model_sources()
+                    for model in source.embedding_models
+                ],
                 description="OpenAI 兼容 embedding 模型。",
             ),
             default_model=settings.embedding_model,
@@ -413,9 +521,11 @@ def _build_descriptors(settings: Settings) -> dict[str, ComponentDescriptor]:
             label="OpenAI Generator",
             description="OpenAI 兼容聊天生成器，使用检索证据生成带引用答案。",
             models=_model_options(
-                settings.llm_model,
-                "gpt-4.1-mini",
-                "gpt-4.1",
+                *[
+                    model
+                    for source in settings.api_model_sources()
+                    for model in source.chat_models
+                ],
                 description="OpenAI 兼容聊天生成模型。",
             ),
             default_model=settings.llm_model,
@@ -450,3 +560,90 @@ def _model_options(*model_names: str, description: str) -> list[ModelOption]:
             )
         )
     return options
+
+
+def _local_embedding_source() -> ModelSourceOption:
+    """返回本地 hash embedding 来源，供前端在离线模式下选择。"""
+    return ModelSourceOption(
+        id=LOCAL_MODEL_SOURCE_ID,
+        label="本地 Hash",
+        description="确定性的本地 embedding，用于离线测试和无密钥验收。",
+        api_key_configured=True,
+        base_url_configured=True,
+        models=[
+            ModelOption(
+                id=DEFAULT_HASH_EMBEDDING_MODEL,
+                label=DEFAULT_HASH_EMBEDDING_MODEL,
+                description="基于词项哈希的本地确定性向量模型。",
+            )
+        ],
+    )
+
+
+def _local_chat_source() -> ModelSourceOption:
+    """返回本地抽取式答案来源，供前端在离线模式下选择。"""
+    return ModelSourceOption(
+        id=LOCAL_MODEL_SOURCE_ID,
+        label="本地抽取式",
+        description="不调用外部模型，直接从检索证据中抽取并拼接答案。",
+        api_key_configured=True,
+        base_url_configured=True,
+        models=[
+            ModelOption(
+                id=DEFAULT_EXTRACTIVE_MODEL,
+                label=DEFAULT_EXTRACTIVE_MODEL,
+                description="从检索 chunk 中抽取证据并拼接引用的本地生成器。",
+            )
+        ],
+    )
+
+
+def _api_model_source_option(
+    source,
+    *,
+    models: list[str],
+    description: str,
+) -> ModelSourceOption:
+    """把运行时模型来源配置转换成前端可安全消费的来源选项。"""
+    return ModelSourceOption(
+        id=source.id,
+        label=source.label,
+        description=source.description,
+        api_key_configured=bool(source.api_key),
+        base_url_configured=bool(source.base_url),
+        models=_model_options(*models, description=description),
+    )
+
+
+def _catalog_default_source(source_id: str | None, *, sources: list[ModelSourceOption]) -> str:
+    """确保 catalog 当前来源一定存在于可展示来源列表中。"""
+    if any(source.id == source_id for source in sources):
+        return source_id
+    return ""
+
+
+def _catalog_default_model(
+    source_id: str,
+    configured_model: str | None,
+    *,
+    sources: list[ModelSourceOption],
+) -> str | None:
+    """只把显式配置过的外部模型作为 catalog 当前值。"""
+    if configured_model and any(source.id == source_id for source in sources):
+        return configured_model
+    return None
+
+
+def _required_config_value(value: str | None, message: str) -> str:
+    """读取必须由调用方或环境显式提供的配置，缺失时立刻抛出清晰错误。"""
+    if value is None or not str(value).strip():
+        raise ValueError(message)
+    return str(value).strip()
+
+
+def _ensure_api_source_ready(source: ApiModelSourceConfig) -> None:
+    """调用外部模型前校验密钥和必要连接信息，禁止用占位值兜底。"""
+    if not source.api_key:
+        raise ValueError(f"缺少 {source.label} API 密钥：请配置 {source.api_key_env}。")
+    if source.requires_base_url and not source.base_url:
+        raise ValueError(f"缺少 {source.label} 基础 URL：请配置 {source.base_url_env}。")

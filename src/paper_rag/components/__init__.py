@@ -7,7 +7,10 @@ from paper_rag.components.types import (
     ComponentKind,
     ComponentSelection,
     ConfigFieldType,
+    ModelCatalog,
     ModelOption,
+    ModelSelectionCatalog,
+    ModelSourceOption,
     RagPipelineConfig,
 )
 
@@ -18,7 +21,10 @@ __all__ = [
     "ComponentRegistry",
     "ComponentSelection",
     "ConfigFieldType",
+    "ModelCatalog",
     "ModelOption",
+    "ModelSelectionCatalog",
+    "ModelSourceOption",
     "RagPipelineConfig",
     "get_component_registry",
 ]

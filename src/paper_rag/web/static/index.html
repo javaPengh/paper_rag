@@ -20,13 +20,12 @@
             id="index-dir"
             name="indexDir"
             type="text"
-            value=".paper_rag/manual_index"
+            value=".paper_rag/api_index"
             list="index-dir-options"
             placeholder=".paper_rag/api_index"
             autocomplete="off"
           />
           <datalist id="index-dir-options">
-            <option value=".paper_rag/manual_index"></option>
             <option value=".paper_rag/api_index"></option>
           </datalist>
         </label>
@@ -54,9 +53,15 @@
             <input id="upload-file" name="file" type="file" accept="application/pdf,.pdf" />
           </label>
           <label>
-            <span>Embedding mode</span>
-            <select id="upload-mode">
-              <option value="local" selected>Loading embedding modes...</option>
+            <span>Embedding source</span>
+            <select id="upload-embedding-source">
+              <option value="" selected>Loading sources...</option>
+            </select>
+          </label>
+          <label>
+            <span>Embedding model</span>
+            <select id="upload-embedding-model">
+              <option value="" selected>Loading models...</option>
             </select>
           </label>
           <div class="upload-controls">
@@ -103,17 +108,47 @@
             placeholder="What does this knowledge base say?"
           ></textarea>
           <div class="ask-controls">
-            <label>
-              <span>Mode</span>
-              <select id="ask-mode">
-                <option value="local" selected>Loading answer modes...</option>
-              </select>
-            </label>
-            <label>
-              <span>Top K</span>
-              <input id="top-k" type="number" min="1" value="3" />
-            </label>
-            <button type="submit">Ask</button>
+            <div class="ask-control-group">
+              <h3>Query embedding</h3>
+              <div class="ask-control-row">
+                <label>
+                  <span>Source</span>
+                  <select id="ask-embedding-source">
+                    <option value="" selected>Loading sources...</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Model</span>
+                  <select id="ask-embedding-model">
+                    <option value="" selected>Loading models...</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="ask-control-group">
+              <h3>Answer model</h3>
+              <div class="ask-control-row">
+                <label>
+                  <span>Source</span>
+                  <select id="ask-chat-source">
+                    <option value="" selected>Loading sources...</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Model</span>
+                  <select id="ask-chat-model">
+                    <option value="" selected>Loading models...</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="ask-submit-row">
+              <label>
+                <span>Top K</span>
+                <input id="top-k" type="number" min="1" value="3" />
+              </label>
+              <button type="submit">Ask</button>
+            </div>
           </div>
         </form>
 

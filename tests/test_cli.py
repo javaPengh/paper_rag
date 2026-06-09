@@ -1,5 +1,6 @@
-"""CLI integration tests for the local RAG workflow."""
+"""CLI 集成测试。"""
 
+import os
 from pathlib import Path
 from uuid import uuid4
 
@@ -15,14 +16,15 @@ TEST_PDF_TEXT = (
 )
 
 
-def test_cli_local_mvp_flow(tmp_path: Path) -> None:
+def test_cli_requires_external_model_config_for_index(tmp_path: Path) -> None:
+    """确认 CLI 建索引时不会再接受本地模式兜底。"""
     run_dir = tmp_path / "test_cli" / uuid4().hex
     source_dir = run_dir / "papers"
     index_dir = run_dir / "index"
     _write_test_pdf(source_dir / "paper_rag_test.pdf")
 
     runner = CliRunner()
-    index_result = runner.invoke(
+    result = runner.invoke(
         app,
         [
             "index",
@@ -31,45 +33,21 @@ def test_cli_local_mvp_flow(tmp_path: Path) -> None:
             str(index_dir),
             "--tenant-id",
             "default",
-            "--local",
-            "--chunk-size",
-            "120",
-            "--chunk-overlap",
-            "20",
         ],
+        env=_empty_model_env(),
     )
-    assert index_result.exit_code == 0, index_result.output
-    assert "Status: ready" in index_result.output
-    assert "Tenant: default" in index_result.output
-    assert "Total chunks:" in index_result.output
 
-    docs_result = runner.invoke(
-        app,
-        ["list-docs", "--index-dir", str(index_dir), "--tenant-id", "default"],
-    )
-    assert docs_result.exit_code == 0, docs_result.output
-    assert "paper_rag_test.pdf" in docs_result.output
-    assert "tenant=default" in docs_result.output
-    assert "version=" in docs_result.output
+    assert result.exit_code != 0
+    assert "缺少 embedding 模型来源" in result.output
 
-    chunks_result = runner.invoke(
-        app,
-        [
-            "show-chunks",
-            "paper_rag_test.pdf",
-            "--index-dir",
-            str(index_dir),
-            "--tenant-id",
-            "default",
-            "--limit",
-            "1",
-        ],
-    )
-    assert chunks_result.exit_code == 0, chunks_result.output
-    assert "chunk_index=0" in chunks_result.output
-    assert "version=" in chunks_result.output
 
-    answer_result = runner.invoke(
+def test_cli_requires_external_model_config_for_ask(tmp_path: Path) -> None:
+    """确认 CLI 问答缺少模型配置时会直接报错。"""
+    run_dir = tmp_path / "test_cli" / uuid4().hex
+    index_dir = run_dir / "index"
+
+    runner = CliRunner()
+    result = runner.invoke(
         app,
         [
             "ask",
@@ -78,35 +56,16 @@ def test_cli_local_mvp_flow(tmp_path: Path) -> None:
             str(index_dir),
             "--tenant-id",
             "default",
-            "--local",
-            "--top-k",
-            "3",
         ],
+        env=_empty_model_env(),
     )
-    assert answer_result.exit_code == 0, answer_result.output
-    assert "Answer:" in answer_result.output
-    assert "[paper_rag_test.pdf, p.1]" in answer_result.output
 
-    insufficient_result = runner.invoke(
-        app,
-        [
-            "ask",
-            "What is the capital of France?",
-            "--index-dir",
-            str(index_dir),
-            "--tenant-id",
-            "default",
-            "--local",
-            "--top-k",
-            "3",
-        ],
-    )
-    assert insufficient_result.exit_code == 0, insufficient_result.output
-    assert "不足以回答" in insufficient_result.output
+    assert result.exit_code != 0
+    assert "缺少 embedding 模型来源" in result.output or "Build the index before retrieval." in result.output
 
 
 def _write_test_pdf(path: Path, text: str = TEST_PDF_TEXT) -> Path:
-    """Create a tiny PDF fixture for CLI tests without production sample helpers."""
+    """创建一个极小 PDF 夹具，避免依赖生产示例文件。"""
     import fitz
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -119,3 +78,27 @@ def _write_test_pdf(path: Path, text: str = TEST_PDF_TEXT) -> Path:
     document.save(path)
     document.close()
     return path
+
+
+def _empty_model_env() -> dict[str, str]:
+    """构造不包含模型配置的最小 CLI 环境变量集合。"""
+    env = dict(os.environ)
+    for key in [
+        "OPENAI_API_KEY",
+        "OPENAI_BASE_URL",
+        "OPENAI_EMBEDDING_MODELS",
+        "OPENAI_CHAT_MODELS",
+        "SILICONFLOW_API_KEY",
+        "SILICONFLOW_BASE_URL",
+        "SILICONFLOW_EMBEDDING_MODELS",
+        "SILICONFLOW_CHAT_MODELS",
+        "EMBEDDING_SOURCE",
+        "EMBEDDING_MODEL",
+        "CHAT_SOURCE",
+        "CHAT_MODEL",
+        "PAPER_RAG_EMBEDDING_MODEL",
+        "PAPER_RAG_LLM_MODEL",
+    ]:
+        env.pop(key, None)
+    env["PAPER_RAG_ENV_FILE"] = str(Path.cwd() / ".missing-test.env")
+    return env

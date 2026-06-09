@@ -1,4 +1,4 @@
-"""FastAPI and Web Inspector integration tests."""
+"""FastAPI 与 Web Inspector 集成测试。"""
 
 from pathlib import Path
 from uuid import uuid4
@@ -19,7 +19,11 @@ TEST_PDF_TEXT = (
 )
 
 
-def test_api_inspector_local_flow(tmp_path: Path) -> None:
+def test_api_inspector_lists_existing_index_without_local_qa_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """确认 Inspector 仍能展示既有索引，但问答不会再走本地模式。"""
     run_dir = tmp_path / "test_api" / uuid4().hex
     source_dir = run_dir / "papers"
     index_dir = run_dir / "index"
@@ -32,6 +36,7 @@ def test_api_inspector_local_flow(tmp_path: Path) -> None:
         chunking_config=ChunkingConfig(chunk_size=120, chunk_overlap=20),
     )
 
+    _clear_model_env(monkeypatch)
     client = TestClient(create_app())
     params = {"index_dir": str(index_dir), "tenant_id": "default"}
 
@@ -66,18 +71,14 @@ def test_api_inspector_local_flow(tmp_path: Path) -> None:
             "question": "What does Paper RAG index?",
             "index_dir": str(index_dir),
             "tenant_id": "default",
-            "local": True,
             "top_k": 3,
         },
     )
-    assert answer.status_code == 200
-    answer_payload = answer.json()
-    assert answer_payload["insufficient_evidence"] is False
-    assert answer_payload["citations"]
-    assert answer_payload["evidence"]
+    assert answer.status_code == 400
 
 
 def test_api_serves_inspector_upload_ui() -> None:
+    """确认 Inspector 页面仍保留上传与问答所需的控件骨架。"""
     client = TestClient(create_app())
 
     page = client.get("/")
@@ -85,9 +86,12 @@ def test_api_serves_inspector_upload_ui() -> None:
     assert 'id="index-dir"' in page.text
     assert 'id="upload-form"' in page.text
     assert 'id="upload-file"' in page.text
-    assert 'id="upload-mode"' in page.text
-    assert 'id="upload-chunk-size"' in page.text
-    assert 'id="ask-mode"' in page.text
+    assert 'id="upload-embedding-source"' in page.text
+    assert 'id="upload-embedding-model"' in page.text
+    assert 'id="ask-embedding-source"' in page.text
+    assert 'id="ask-embedding-model"' in page.text
+    assert 'id="ask-chat-source"' in page.text
+    assert 'id="ask-chat-model"' in page.text
     assert 'src="/static/inspector.js"' in page.text
 
 
@@ -95,22 +99,27 @@ def test_api_config_exposes_model_names_without_secret(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """确认运行时配置仅暴露当前模型选择，不泄露密钥。"""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("OPENAI_API_KEY", "secret-key")
     monkeypatch.setenv("OPENAI_BASE_URL", "https://example.test/v1")
-    monkeypatch.setenv("PAPER_RAG_EMBEDDING_MODEL", "embedding-model")
-    monkeypatch.setenv("PAPER_RAG_LLM_MODEL", "llm-model")
+    monkeypatch.setenv("EMBEDDING_SOURCE", "openai")
+    monkeypatch.setenv("EMBEDDING_MODEL", "embedding-model")
+    monkeypatch.setenv("CHAT_SOURCE", "openai")
+    monkeypatch.setenv("CHAT_MODEL", "llm-model")
 
     client = TestClient(create_app())
     response = client.get("/api/config")
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["embedding_source"] == "openai"
     assert payload["embedding_model"] == "embedding-model"
+    assert payload["chat_source"] == "openai"
+    assert payload["chat_model"] == "llm-model"
     assert payload["llm_model"] == "llm-model"
     assert payload["api_key_configured"] is True
     assert payload["base_url_configured"] is True
-    assert payload["recommended_local_index_dir"] == ".paper_rag/manual_index"
     assert payload["recommended_api_index_dir"] == ".paper_rag/api_index"
     assert "secret-key" not in response.text
 
@@ -119,18 +128,30 @@ def test_api_components_exposes_catalog_without_secret(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """确认组件 catalog 覆盖五类组件，且不会暴露 OpenAI 密钥。"""
+    """确认组件 catalog 仍覆盖五类组件，且模型来源按能力分开。"""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("OPENAI_API_KEY", "secret-key")
-    monkeypatch.setenv("PAPER_RAG_EMBEDDING_MODEL", "embedding-model")
-    monkeypatch.setenv("PAPER_RAG_LLM_MODEL", "llm-model")
+    monkeypatch.setenv("SILICONFLOW_API_KEY", "siliconflow-secret")
+    monkeypatch.setenv("EMBEDDING_SOURCE", "siliconflow")
+    monkeypatch.setenv("EMBEDDING_MODEL", "Qwen/Qwen3-Embedding-4B")
+    monkeypatch.setenv("CHAT_SOURCE", "siliconflow")
+    monkeypatch.setenv("CHAT_MODEL", "deepseek-ai/DeepSeek-V4-Pro")
+    monkeypatch.setenv("OPENAI_EMBEDDING_MODELS", "")
+    monkeypatch.setenv("OPENAI_CHAT_MODELS", "")
 
     client = TestClient(create_app())
     response = client.get("/api/components")
 
     assert response.status_code == 200
     payload = response.json()
-    assert set(payload) == {"reader", "chunker", "embedder", "retriever", "generator"}
+    assert set(payload) == {
+        "model_catalog",
+        "reader",
+        "chunker",
+        "embedder",
+        "retriever",
+        "generator",
+    }
     assert {item["id"] for item in payload["embedder"]} == {
         "hash_embedder",
         "openai_embedder",
@@ -139,108 +160,114 @@ def test_api_components_exposes_catalog_without_secret(
         "extractive_generator",
         "openai_generator",
     }
-    openai_embedder = next(item for item in payload["embedder"] if item["id"] == "openai_embedder")
-    assert openai_embedder["default_model"] == "embedding-model"
+
+    embedding_catalog = payload["model_catalog"]["embedding"]
+    assert embedding_catalog["source"] == "siliconflow"
+    assert embedding_catalog["model"] == "Qwen/Qwen3-Embedding-4B"
+    assert [source["id"] for source in embedding_catalog["sources"]] == ["siliconflow"]
+    siliconflow_embedding = embedding_catalog["sources"][0]
+    assert siliconflow_embedding["api_key_configured"] is True
+    assert "Qwen/Qwen3-Embedding-4B" in [
+        model["id"] for model in siliconflow_embedding["models"]
+    ]
+
+    chat_catalog = payload["model_catalog"]["chat"]
+    assert chat_catalog["source"] == "siliconflow"
+    assert chat_catalog["model"] == "deepseek-ai/DeepSeek-V4-Pro"
+    assert [source["id"] for source in chat_catalog["sources"]] == ["siliconflow"]
+    chat_models = [model["id"] for model in chat_catalog["sources"][0]["models"]]
+    assert "deepseek-ai/DeepSeek-V4-Pro" in chat_models
+    assert "Qwen/Qwen3-Embedding-4B" not in chat_models
     assert "secret-key" not in response.text
+    assert "siliconflow-secret" not in response.text
 
 
-def test_api_uploads_pdf_and_triggers_local_indexing(
+def test_api_components_hides_unconfigured_external_sources(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """确认未配置模型列表时，前端下拉不会出现任何伪造来源。"""
+    monkeypatch.chdir(tmp_path)
+    _clear_model_env(monkeypatch)
+
+    client = TestClient(create_app())
+    response = client.get("/api/components")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["model_catalog"]["embedding"]["sources"] == []
+    assert payload["model_catalog"]["embedding"]["source"] == ""
+    assert payload["model_catalog"]["embedding"]["model"] is None
+    assert payload["model_catalog"]["chat"]["sources"] == []
+    assert payload["model_catalog"]["chat"]["source"] == ""
+    assert payload["model_catalog"]["chat"]["model"] is None
+
+    config = client.get("/api/config")
+    assert config.status_code == 200
+    config_payload = config.json()
+    assert config_payload["embedding_source"] is None
+    assert config_payload["embedding_model"] is None
+    assert config_payload["chat_source"] is None
+    assert config_payload["chat_model"] is None
+
+
+def test_api_ask_requires_external_model_config(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """确认问答缺少外部模型配置时会直接返回明确错误。"""
+    monkeypatch.chdir(tmp_path)
+    _clear_model_env(monkeypatch)
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/api/ask",
+        json={
+            "question": "What does this knowledge base say?",
+            "index_dir": str(tmp_path / "index"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert "缺少 embedding 模型来源" in response.json()["detail"]
+
+
+def test_api_upload_requires_external_model_config(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """确认上传索引在缺少 embedding 配置时会直接失败。"""
     run_dir = tmp_path / "test_api_upload" / uuid4().hex
     source_dir = run_dir / "source"
     index_dir = run_dir / "index"
     upload_dir = run_dir / "uploads"
     pdf_path = _write_test_pdf(source_dir / "paper_rag_test.pdf")
     monkeypatch.setenv("PAPER_RAG_UPLOAD_DIR", str(upload_dir))
+    _clear_model_env(monkeypatch)
 
     client = TestClient(create_app())
-    initial_status = client.get(
-        "/api/index/status",
-        params={"index_dir": str(index_dir), "tenant_id": "default"},
-    )
-    assert initial_status.status_code == 200
-    assert initial_status.json()["status"] == "missing"
-    assert initial_status.json()["document_count"] == 0
-
     upload = client.post(
         "/api/documents/upload",
         data={
             "tenant_id": "default",
             "index_dir": str(index_dir),
-            "local": "true",
             "chunk_size": "120",
             "chunk_overlap": "20",
         },
         files={"file": ("paper_rag_test.pdf", pdf_path.read_bytes(), "application/pdf")},
     )
 
-    assert upload.status_code == 200, upload.text
-    upload_payload = upload.json()
-    assert upload_payload["upload"]["safe_file_name"] == "paper_rag_test.pdf"
-    assert upload_payload["upload"]["source_uri"]
-    assert upload_payload["index"]["indexed"] == 1
-    assert upload_payload["index"]["indexed_chunks"] >= 1
-    assert upload_payload["status"]["status"] == "ready"
-
-    params = {"index_dir": str(index_dir), "tenant_id": "default"}
-    documents = client.get("/api/documents", params=params)
-    assert documents.status_code == 200
-    document_payload = documents.json()
-    assert len(document_payload) == 1
-    assert "paper_rag_test" in document_payload[0]["file_name"]
-
-    chunks = client.get(
-        f"/api/documents/{document_payload[0]['id']}/chunks",
-        params={**params, "limit": 2},
-    )
-    assert chunks.status_code == 200
-    chunk_payload = chunks.json()
-    assert chunk_payload
-    assert chunk_payload[0]["page_start"] == 1
-
-    answer = client.post(
-        "/api/ask",
-        json={
-            "question": "What does Paper RAG index?",
-            "index_dir": str(index_dir),
-            "tenant_id": "default",
-            "local": True,
-            "top_k": 3,
-        },
-    )
-    assert answer.status_code == 200
-    answer_payload = answer.json()
-    assert answer_payload["insufficient_evidence"] is False
-    assert answer_payload["citations"]
-    assert answer_payload["evidence"]
-    citation = answer_payload["citations"][0]
-    evidence_chunk_ids = {item["chunk"]["id"] for item in answer_payload["evidence"]}
-    assert citation["chunk_id"] in evidence_chunk_ids
-    assert citation["page_start"] == 1
-    assert "paper_rag_test.pdf" in citation["label"]
-
-    insufficient = client.post(
-        "/api/ask",
-        json={
-            "question": "What is the capital of France?",
-            "index_dir": str(index_dir),
-            "tenant_id": "default",
-            "local": True,
-            "top_k": 3,
-        },
-    )
-    assert insufficient.status_code == 200
-    insufficient_payload = insufficient.json()
-    assert insufficient_payload["insufficient_evidence"] is True
-    assert insufficient_payload["citations"] == []
+    assert upload.status_code == 400
+    detail = upload.json()["detail"]
+    assert detail["stage"] == "indexing"
+    assert "缺少 embedding 模型来源" in detail["message"]
 
 
 def test_api_upload_rejects_non_pdf(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """确认上传接口仍会在文件校验阶段拒绝非 PDF。"""
     run_dir = tmp_path / "test_api_upload" / uuid4().hex
     monkeypatch.setenv("PAPER_RAG_UPLOAD_DIR", str(run_dir / "uploads"))
 
@@ -250,7 +277,6 @@ def test_api_upload_rejects_non_pdf(
         data={
             "tenant_id": "default",
             "index_dir": str(run_dir / "index"),
-            "local": "true",
         },
         files={"file": ("notes.txt", b"not a pdf", "text/plain")},
     )
@@ -266,6 +292,7 @@ def test_api_upload_rejects_empty_pdf(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """确认空 PDF 会在上传阶段被拦截。"""
     run_dir = tmp_path / "test_api_upload" / uuid4().hex
     monkeypatch.setenv("PAPER_RAG_UPLOAD_DIR", str(run_dir / "uploads"))
 
@@ -275,7 +302,6 @@ def test_api_upload_rejects_empty_pdf(
         data={
             "tenant_id": "default",
             "index_dir": str(run_dir / "index"),
-            "local": "true",
         },
         files={"file": ("paper.pdf", b"", "application/pdf")},
     )
@@ -291,6 +317,7 @@ def test_api_upload_rejects_pdf_over_size_limit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """确认大小限制仍在上传阶段生效。"""
     run_dir = tmp_path / "test_api_upload" / uuid4().hex
     monkeypatch.setenv("PAPER_RAG_UPLOAD_DIR", str(run_dir / "uploads"))
     monkeypatch.setenv("PAPER_RAG_UPLOAD_MAX_BYTES", "5")
@@ -301,7 +328,6 @@ def test_api_upload_rejects_pdf_over_size_limit(
         data={
             "tenant_id": "default",
             "index_dir": str(run_dir / "index"),
-            "local": "true",
         },
         files={"file": ("paper.pdf", b"%PDF-1.7\n%%EOF\n", "application/pdf")},
     )
@@ -312,12 +338,14 @@ def test_api_upload_rejects_pdf_over_size_limit(
     assert "too large" in detail["message"]
 
 
-def test_api_upload_returns_structured_errors_for_unparseable_pdf(
+def test_api_upload_returns_missing_model_error_before_parse(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """确认未配置模型时，上传不会继续进入解析阶段。"""
     run_dir = tmp_path / "test_api_upload" / uuid4().hex
     monkeypatch.setenv("PAPER_RAG_UPLOAD_DIR", str(run_dir / "uploads"))
+    _clear_model_env(monkeypatch)
 
     client = TestClient(create_app())
     upload = client.post(
@@ -325,28 +353,28 @@ def test_api_upload_returns_structured_errors_for_unparseable_pdf(
         data={
             "tenant_id": "default",
             "index_dir": str(run_dir / "index"),
-            "local": "true",
         },
         files={"file": ("broken.pdf", b"%PDF-this is not parseable", "application/pdf")},
     )
 
-    assert upload.status_code == 200, upload.text
-    payload = upload.json()
-    assert payload["status"]["status"] == "error"
-    assert payload["index"]["errors"]
-    assert "Could not open PDF" in payload["index"]["errors"][0]["message"]
+    assert upload.status_code == 400
+    detail = upload.json()["detail"]
+    assert detail["stage"] == "indexing"
+    assert "缺少 embedding 模型来源" in detail["message"]
 
 
-def test_api_upload_returns_structured_indexing_error(
+def test_api_upload_returns_missing_model_error_before_chunk_validation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """确认未配置模型时，索引参数校验不会掩盖缺配置错误。"""
     run_dir = tmp_path / "test_api_upload" / uuid4().hex
     source_dir = run_dir / "source"
     index_dir = run_dir / "index"
     upload_dir = run_dir / "uploads"
     pdf_path = _write_test_pdf(source_dir / "paper_rag_test.pdf")
     monkeypatch.setenv("PAPER_RAG_UPLOAD_DIR", str(upload_dir))
+    _clear_model_env(monkeypatch)
 
     client = TestClient(create_app())
     upload = client.post(
@@ -354,7 +382,6 @@ def test_api_upload_returns_structured_indexing_error(
         data={
             "tenant_id": "default",
             "index_dir": str(index_dir),
-            "local": "true",
             "chunk_size": "10",
             "chunk_overlap": "10",
         },
@@ -364,12 +391,11 @@ def test_api_upload_returns_structured_indexing_error(
     assert upload.status_code == 400
     detail = upload.json()["detail"]
     assert detail["stage"] == "indexing"
-    assert detail["error_type"] == "ValueError"
-    assert "chunk_overlap" in detail["message"]
+    assert "缺少 embedding 模型来源" in detail["message"]
 
 
 def _write_test_pdf(path: Path, text: str = TEST_PDF_TEXT) -> Path:
-    """Create a tiny PDF fixture for API tests without production sample helpers."""
+    """创建一个极小 PDF 夹具，避免依赖生产示例文件。"""
     import fitz
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -382,3 +408,25 @@ def _write_test_pdf(path: Path, text: str = TEST_PDF_TEXT) -> Path:
     document.save(path)
     document.close()
     return path
+
+
+def _clear_model_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """清理会影响模型 catalog 与外部模型调用的环境变量。"""
+    for key in [
+        "OPENAI_API_KEY",
+        "OPENAI_BASE_URL",
+        "OPENAI_EMBEDDING_MODELS",
+        "OPENAI_CHAT_MODELS",
+        "SILICONFLOW_API_KEY",
+        "SILICONFLOW_BASE_URL",
+        "SILICONFLOW_EMBEDDING_MODELS",
+        "SILICONFLOW_CHAT_MODELS",
+        "EMBEDDING_SOURCE",
+        "EMBEDDING_MODEL",
+        "CHAT_SOURCE",
+        "CHAT_MODEL",
+        "PAPER_RAG_EMBEDDING_MODEL",
+        "PAPER_RAG_LLM_MODEL",
+    ]:
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("PAPER_RAG_ENV_FILE", str(Path.cwd() / ".missing-test.env"))

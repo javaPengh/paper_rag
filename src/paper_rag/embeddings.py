@@ -27,10 +27,7 @@ class EmbeddingClient(Protocol):
 class OpenAIEmbeddingClient:
     """带简单重试处理的 OpenAI 兼容 embedding 客户端。"""
 
-    model_name: str = field(
-        default="text-embedding-3-small",
-        metadata={"description": "OpenAI 兼容 embedding 模型名。"},
-    )
+    model_name: str = field(metadata={"description": "OpenAI 兼容 embedding 模型名。"})
     api_key: str | None = field(
         default=None,
         metadata={"description": "embedding 提供方的 API 密钥。"},
@@ -38,6 +35,10 @@ class OpenAIEmbeddingClient:
     base_url: str | None = field(
         default=None,
         metadata={"description": "可选的 OpenAI 兼容 embedding 端点覆盖。"},
+    )
+    source_name: str = field(
+        default="openai",
+        metadata={"description": "embedding 模型来源，用于索引状态和评测报告追踪。"},
     )
     max_retries: int = field(
         default=2,
@@ -99,6 +100,10 @@ class HashEmbeddingClient:
     dimensions: int = field(
         default=64,
         metadata={"description": "基于哈希的本地 embedding 的固定向量维度。"},
+    )
+    source_name: str = field(
+        default="local",
+        metadata={"description": "本地 hash embedding 的模型来源标识。"},
     )
 
     def embed_texts(self, texts: Sequence[str]) -> list[list[float]]:

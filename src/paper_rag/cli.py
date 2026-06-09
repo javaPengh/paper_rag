@@ -62,14 +62,14 @@ def index(
         str | None,
         typer.Option("--embedding-model", help="Embedding model name."),
     ] = None,
+    embedding_source: Annotated[
+        str | None,
+        typer.Option("--embedding-source", help="Embedding model source."),
+    ] = None,
     tenant_id: Annotated[
         str,
         typer.Option("--tenant-id", help="Tenant/workspace ID for data isolation."),
     ] = "default",
-    local: Annotated[
-        bool,
-        typer.Option("--local", help="Use deterministic local hash embeddings for offline checks."),
-    ] = False,
     chunk_size: Annotated[
         int,
         typer.Option("--chunk-size", min=1, help="Maximum chunk size in tokens."),
@@ -91,19 +91,19 @@ def index(
     settings = load_settings()
     registry = get_component_registry(settings)
     target_index_dir = index_dir or settings.index_dir
-    embedding_client = _make_embedding_client(
-        embedding_model=embedding_model,
-        local=local,
-        registry=registry,
-    )
-    chunker = registry.create_chunker(
-        parameters={
-            "chunk_size": chunk_size,
-            "chunk_overlap": chunk_overlap,
-        }
-    )
 
     try:
+        embedding_client = _make_embedding_client(
+            embedding_source=embedding_source,
+            embedding_model=embedding_model,
+            registry=registry,
+        )
+        chunker = registry.create_chunker(
+            parameters={
+                "chunk_size": chunk_size,
+                "chunk_overlap": chunk_overlap,
+            }
+        )
         result = build_index_from_directory(
             source_dir,
             index_dir=target_index_dir,
@@ -114,7 +114,7 @@ def index(
             batch_size=batch_size,
             recursive=recursive,
         )
-    except PaperRagError as exc:
+    except (PaperRagError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
 
     typer.echo(f"Index directory: {target_index_dir}")
@@ -147,13 +147,21 @@ def ask(
         str | None,
         typer.Option("--embedding-model", help="Embedding model name."),
     ] = None,
+    embedding_source: Annotated[
+        str | None,
+        typer.Option("--embedding-source", help="Embedding model source."),
+    ] = None,
     tenant_id: Annotated[
         str,
         typer.Option("--tenant-id", help="Tenant/workspace ID for data isolation."),
     ] = "default",
     llm_model: Annotated[
         str | None,
-        typer.Option("--llm-model", help="LLM model name."),
+        typer.Option("--chat-model", "--llm-model", help="Chat model name."),
+    ] = None,
+    chat_source: Annotated[
+        str | None,
+        typer.Option("--chat-source", help="Chat model source."),
     ] = None,
     top_k: Annotated[
         int | None,
@@ -163,10 +171,6 @@ def ask(
         float,
         typer.Option("--min-score", min=0.0, help="Minimum retrieval score for usable evidence."),
     ] = 0.05,
-    local: Annotated[
-        bool,
-        typer.Option("--local", help="Use local hash embeddings and extractive answering."),
-    ] = False,
 ) -> None:
     """向现有本地索引提问。"""
     settings = load_settings()
@@ -175,31 +179,26 @@ def ask(
     effective_top_k = top_k if top_k is not None else settings.top_k
 
     local_index = LocalPaperIndex(target_index_dir)
-    status = local_index.store.load_status()
-    if status and status.embedding_model and status.embedding_model.startswith("hash-"):
-        local = True
-
-    embedding_client = _make_embedding_client(
-        embedding_model=embedding_model or (status.embedding_model if status else None),
-        local=local,
-        registry=registry,
-    )
-    retriever = registry.create_retriever(
-        local_index=local_index,
-        embedding_client=embedding_client,
-        tenant_id=tenant_id,
-        parameters={"top_k": effective_top_k},
-    )
-
     try:
+        embedding_client = _make_embedding_client(
+            embedding_source=embedding_source,
+            embedding_model=embedding_model,
+            registry=registry,
+        )
+        retriever = registry.create_retriever(
+            local_index=local_index,
+            embedding_client=embedding_client,
+            tenant_id=tenant_id,
+            parameters={"top_k": effective_top_k},
+        )
         results = retriever.retrieve(question, top_k=effective_top_k)
         answer = _make_answer_generator(
+            chat_source=chat_source,
             llm_model=llm_model or settings.llm_model,
-            local=local,
             min_score=min_score,
             registry=registry,
         ).generate(question, results)
-    except PaperRagError as exc:
+    except (PaperRagError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
 
     typer.echo(format_answer(answer))
@@ -230,13 +229,6 @@ def eval_command(
         str,
         typer.Option("--tenant-id", help="评测隔离使用的租户或工作区 ID。"),
     ] = "eval",
-    local: Annotated[
-        bool,
-        typer.Option(
-            "--local/--api",
-            help="使用本地 hash embedding 和抽取式回答，或切换到 API provider。",
-        ),
-    ] = True,
     top_k: Annotated[
         int | None,
         typer.Option("--top-k", min=1, help="每条 case 检索的证据 chunk 数。"),
@@ -253,9 +245,17 @@ def eval_command(
         str | None,
         typer.Option("--embedding-model", help="embedding 模型名称。"),
     ] = None,
+    embedding_source: Annotated[
+        str | None,
+        typer.Option("--embedding-source", help="embedding 模型来源。"),
+    ] = None,
     llm_model: Annotated[
         str | None,
-        typer.Option("--llm-model", help="LLM 模型名称。"),
+        typer.Option("--chat-model", "--llm-model", help="对话模型名称。"),
+    ] = None,
+    chat_source: Annotated[
+        str | None,
+        typer.Option("--chat-source", help="对话模型来源。"),
     ] = None,
     min_score: Annotated[
         float,
@@ -271,28 +271,29 @@ def eval_command(
     registry = get_component_registry(settings)
     target_index_dir = index_dir or Path(".paper_rag/eval_index")
     effective_top_k = top_k if top_k is not None else settings.top_k
-    rag_config = registry.build_pipeline_config(
-        local=local,
-        embedding_model=embedding_model,
-        llm_model=llm_model or settings.llm_model,
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        top_k=effective_top_k,
-        min_score=min_score,
-    )
-    embedding_client = _make_embedding_client(
-        embedding_model=embedding_model,
-        local=local,
-        registry=registry,
-    )
-    answer_generator = _make_answer_generator(
-        llm_model=llm_model or settings.llm_model,
-        local=local,
-        min_score=min_score,
-        registry=registry,
-    )
 
     try:
+        rag_config = registry.build_pipeline_config(
+            embedding_source=embedding_source,
+            embedding_model=embedding_model,
+            chat_source=chat_source,
+            llm_model=llm_model or settings.llm_model,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            top_k=effective_top_k,
+            min_score=min_score,
+        )
+        embedding_client = _make_embedding_client(
+            embedding_source=embedding_source,
+            embedding_model=embedding_model,
+            registry=registry,
+        )
+        answer_generator = _make_answer_generator(
+            chat_source=chat_source,
+            llm_model=llm_model or settings.llm_model,
+            min_score=min_score,
+            registry=registry,
+        )
         result = run_evaluation(
             EvalRunConfig(
                 dataset_path=dataset_path,
@@ -444,35 +445,42 @@ def serve(
 
 def _make_embedding_client(
     *,
+    embedding_source: str | None,
     embedding_model: str | None,
-    local: bool,
     registry: ComponentRegistry | None = None,
 ) -> Embedder:
     """根据 CLI 标志和环境设置创建 embedding 客户端。"""
     settings = load_settings()
     active_registry = registry or get_component_registry(settings)
-    model_name = embedding_model or ("hash-embedding-v1" if local else settings.embedding_model)
-    component_id = active_registry.resolve_embedder_id(local=local, model_name=model_name)
+    source_name = embedding_source or settings.embedding_source
+    model_name = embedding_model or settings.embedding_model
+    component_id = active_registry.resolve_embedder_id(
+        source=source_name,
+        model_name=model_name,
+    )
     return active_registry.create_embedder(
         component_id,
+        source=source_name,
         model_name=model_name,
     )
 
 
 def _make_answer_generator(
     *,
-    llm_model: str,
-    local: bool,
+    chat_source: str | None,
+    llm_model: str | None,
     min_score: float,
     registry: ComponentRegistry | None = None,
 ) -> Generator:
     """根据 CLI 标志和环境设置创建答案生成器。"""
     settings = load_settings()
     active_registry = registry or get_component_registry(settings)
-    component_id = active_registry.resolve_generator_id(local=local)
+    source_name = chat_source or settings.chat_source
+    component_id = active_registry.resolve_generator_id(source=source_name)
     return active_registry.create_generator(
         component_id,
-        model_name=None if local else llm_model,
+        source=source_name,
+        model_name=llm_model,
         parameters={"min_score": min_score},
     )
 

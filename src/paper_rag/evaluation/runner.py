@@ -13,7 +13,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from paper_rag.components import RagPipelineConfig, get_component_registry
+from paper_rag.components import ComponentSelection, RagPipelineConfig, get_component_registry
 from paper_rag.components.interfaces import Retriever
 from paper_rag.domain import Answer, IndexBuildResult, SearchResult
 from paper_rag.embeddings import EmbeddingClient
@@ -381,15 +381,46 @@ def _infer_rag_config(
     """从旧调用方式传入的组件实例推断可记录的 RAG 配置。"""
     registry = get_component_registry()
     embedding_model = getattr(embedding_client, "model_name", None)
+    embedding_source = getattr(embedding_client, "source_name", None)
     generator_model = _answer_generator_model(answer_generator)
-    local = bool(
-        (embedding_model and embedding_model.startswith("hash-"))
-        or generator_model == "extractive-local-v1"
-    )
+    generator_source = _answer_generator_source(answer_generator)
+    if (embedding_model and embedding_model.startswith("hash-")) or (
+        generator_model == "extractive-local-v1"
+    ):
+        return RagPipelineConfig(
+            reader=ComponentSelection(
+                id="pdf_reader",
+                parameters={"recursive": config.recursive},
+            ),
+            chunker=ComponentSelection(
+                id="token_window_chunker",
+                parameters={
+                    "chunk_size": config.chunk_size,
+                    "chunk_overlap": config.chunk_overlap,
+                    "encoding_name": "cl100k_base",
+                },
+            ),
+            embedder=ComponentSelection(
+                id="hash_embedder",
+                source=embedding_source or "local",
+                model=embedding_model,
+            ),
+            retriever=ComponentSelection(
+                id="vector_retriever",
+                parameters={"top_k": config.top_k},
+            ),
+            generator=ComponentSelection(
+                id="extractive_generator",
+                source=generator_source or "local",
+                model=generator_model,
+                parameters={"min_score": _answer_generator_min_score(answer_generator)},
+            ),
+        )
     return registry.build_pipeline_config(
-        local=local,
+        embedding_source=embedding_source,
         embedding_model=embedding_model,
-        llm_model=None if local else generator_model,
+        chat_source=generator_source,
+        llm_model=generator_model,
         chunk_size=config.chunk_size,
         chunk_overlap=config.chunk_overlap,
         recursive=config.recursive,
@@ -406,6 +437,16 @@ def _answer_generator_model(answer_generator: AnswerGenerator) -> str | None:
     chat_client = getattr(answer_generator, "chat_client", None)
     chat_model = getattr(chat_client, "model_name", None)
     return chat_model if isinstance(chat_model, str) else None
+
+
+def _answer_generator_source(answer_generator: AnswerGenerator) -> str | None:
+    """读取本地或 OpenAI 兼容答案生成器的模型来源，用于评测报告。"""
+    direct_source = getattr(answer_generator, "source_name", None)
+    if isinstance(direct_source, str):
+        return direct_source
+    chat_client = getattr(answer_generator, "chat_client", None)
+    chat_source = getattr(chat_client, "source_name", None)
+    return chat_source if isinstance(chat_source, str) else None
 
 
 def _answer_generator_min_score(answer_generator: AnswerGenerator) -> float:

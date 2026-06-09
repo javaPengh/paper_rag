@@ -35,7 +35,7 @@ MVP 默认使用单租户 `tenant_id = "default"`；CLI 可通过 `--tenant-id` 
 - `paper_rag.domain`：文档、版本、页面、chunk、引用、答案、检索结果和索引状态等业务模型。
 - `paper_rag.schemas`：旧导入路径兼容层，新代码优先从 `paper_rag.domain` 导入。
 - `paper_rag.components.interfaces`：Reader、Chunker、Embedder、Retriever、Generator 五类能力协议。
-- `paper_rag.components.registry`：内置组件 catalog、默认模型、非密钥参数和组件工厂。
+- `paper_rag.components.registry`：内置组件 catalog、模型来源 catalog、当前显式模型、非密钥参数和组件工厂。
 - `paper_rag.components.*`：当前 PDF reader、token window chunker、hash/OpenAI embedder、vector retriever、extractive/OpenAI generator 的 provider 包装。
 
 后端组件 catalog 可通过 API 查看：
@@ -44,7 +44,11 @@ MVP 默认使用单租户 `tenant_id = "default"`；CLI 可通过 `--tenant-id` 
 GET /api/components
 ```
 
-该接口只返回组件 ID、说明、模型选项、默认模型和非密钥配置字段，不返回 API key。
+该接口只返回组件 ID、说明、模型来源、模型选项、当前显式模型和非密钥配置字段，不返回 API key。
+Web Inspector 的 embedding 和对话模型下拉框由 `model_catalog.embedding` 与
+`model_catalog.chat` 驱动：`*_MODELS` 列表决定可选模型，`EMBEDDING_MODEL` 和
+`CHAT_MODEL` 只决定当前选中项。
+如果某个来源的某类 `*_MODELS` 为空，且没有为该类别配置当前选中模型，该来源不会出现在对应下拉框中。
 `paper-rag eval --report-json` 会在 JSON report 的 `run.rag_config` 中记录本次使用的五类组件配置，便于后续比较不同解析、切分、向量、检索和生成策略的效果。
 
 ## 本地运行草稿
@@ -133,11 +137,34 @@ Copy-Item .env.example .env
 `.env` 示例：
 
 ```dotenv
-OPENAI_API_KEY=your-api-key
+SILICONFLOW_API_KEY=
+SILICONFLOW_BASE_URL=
+SILICONFLOW_EMBEDDING_MODELS=
+SILICONFLOW_CHAT_MODELS=
+
+OPENAI_API_KEY=
 OPENAI_BASE_URL=
-PAPER_RAG_EMBEDDING_MODEL=text-embedding-3-small
-PAPER_RAG_LLM_MODEL=gpt-4.1-mini
+OPENAI_EMBEDDING_MODELS=
+OPENAI_CHAT_MODELS=
+
+EMBEDDING_SOURCE=
+EMBEDDING_MODEL=
+CHAT_SOURCE=
+CHAT_MODEL=
 ```
+
+外部来源只在显式配置模型列表或当前选中模型后才会出现在前端下拉框中。新增同一供应商下的模型时，追加到对应的列表变量即可，原模型会继续留在前端下拉框中。
+例如新增一个硅基流动对话模型：
+
+```dotenv
+SILICONFLOW_CHAT_MODELS=deepseek-ai/DeepSeek-V4-Pro,deepseek-ai/DeepSeek-V4-Flash,Pro/deepseek-ai/DeepSeek-V3.2
+```
+
+`EMBEDDING_SOURCE` / `CHAT_SOURCE` 表示当前选中的供应商；`EMBEDDING_MODEL` / `CHAT_MODEL`
+表示当前选中的模型。它们不是兜底默认值，未配置时外部 API 调用会直接报出缺少的配置项。旧的 `PAPER_RAG_EMBEDDING_MODEL` 和 `PAPER_RAG_LLM_MODEL` 仍兼容，
+但新配置优先使用不带项目前缀的写法。
+如果要让 OpenAI 也出现在前端下拉框中，需要显式填写对应模型列表，例如
+`OPENAI_CHAT_MODELS=gpt-4.1-mini,gpt-4.1`。
 
 Shell 中已经设置的同名环境变量优先级高于 `.env`。如果 `.env` 不在当前目录或上级目录，
 可以显式指定：
@@ -154,11 +181,12 @@ $env:PAPER_RAG_ENV_FILE="D:\path\to\.env"
 真实模型 CLI 示例：
 
 ```powershell
-paper-rag index eval/papers --index-dir .paper_rag/api_index --tenant-id default --chunk-size 800 --chunk-overlap 120
-paper-rag ask "你的问题" --index-dir .paper_rag/api_index --tenant-id default --top-k 5
+paper-rag index eval/papers --index-dir .paper_rag/api_index --tenant-id default --embedding-source siliconflow --embedding-model Qwen/Qwen3-Embedding-4B --chunk-size 800 --chunk-overlap 120
+paper-rag ask "你的问题" --index-dir .paper_rag/api_index --tenant-id default --embedding-source siliconflow --embedding-model Qwen/Qwen3-Embedding-4B --chat-source siliconflow --chat-model deepseek-ai/DeepSeek-V4-Pro --top-k 5
 ```
 
 不要把 hash embedding 建出的索引和真实 embedding 查询混用；两者向量空间不同。
+不同 embedding 来源或模型也建议使用不同索引目录，便于评测报告和人工对比追踪。
 
 ## Web Inspector 本地检验台
 
@@ -180,9 +208,9 @@ http://127.0.0.1:8000
 
 - `Index dir` 就是当前要查看、上传或提问的索引目录。可以填写任意目录，也可以从候选值里选择 `.paper_rag/manual_index` 或 `.paper_rag/api_index`。
 - 修改 `Index dir` 或 `Tenant` 后，页面会自动刷新当前索引状态和文档列表。
-- 上传区的 `Embedding mode` 会显示当前本地 embedding 或真实 embedding 模型名。
-- 提问区的 `Mode` 会显示当前本地问答链路或真实 embedding + LLM 模型名。
-- 如果要真实模型单独建库，`Index dir` 填 `.paper_rag/api_index`，上传和提问模式都选 API。
+- 上传区可选择 embedding 来源和模型。
+- 提问区的 `Query embedding` 选择查询向量化来源/模型，`Answer model` 选择答案生成来源/模型。
+- 如果要真实模型单独建库，`Index dir` 填 `.paper_rag/api_index`，并选择对应的外部来源和模型。
 
 常用 API：
 
@@ -208,18 +236,27 @@ POST /api/ask
 
 项目会读取 `.env` 文件或 shell 环境变量：
 
+外部供应商、模型列表和当前选中模型都不会由系统自动补齐；需要真实调用 API 时，请显式填写对应 key、base URL、来源和模型。
+
 ```powershell
 $env:OPENAI_API_KEY="your-api-key"
+$env:SILICONFLOW_API_KEY="your-siliconflow-key"
 ```
 
 可选配置：
 
 ```powershell
+$env:EMBEDDING_SOURCE="siliconflow"
+$env:EMBEDDING_MODEL="Qwen/Qwen3-Embedding-4B"
+$env:CHAT_SOURCE="siliconflow"
+$env:CHAT_MODEL="deepseek-ai/DeepSeek-V4-Pro"
+$env:SILICONFLOW_EMBEDDING_MODELS="Qwen/Qwen3-Embedding-0.6B,Qwen/Qwen3-Embedding-4B"
+$env:SILICONFLOW_CHAT_MODELS="deepseek-ai/DeepSeek-V4-Pro,deepseek-ai/DeepSeek-V4-Flash"
+$env:OPENAI_EMBEDDING_MODELS="text-embedding-3-small,text-embedding-3-large"
+$env:OPENAI_CHAT_MODELS="gpt-4.1-mini,gpt-4.1"
 $env:PAPER_RAG_INDEX_DIR=".paper_rag/index"
 $env:PAPER_RAG_UPLOAD_DIR=".paper_rag/uploads"
 $env:PAPER_RAG_UPLOAD_MAX_BYTES="52428800"
-$env:PAPER_RAG_LLM_MODEL="gpt-4.1-mini"
-$env:PAPER_RAG_EMBEDDING_MODEL="text-embedding-3-small"
 $env:PAPER_RAG_ENV_FILE="D:\path\to\.env"
 ```
 
@@ -232,3 +269,4 @@ $env:PAPER_RAG_ENV_FILE="D:\path\to\.env"
 - `docs/task/02_web_inspector_mvp.md`
 - `docs/task/03_evaluation_foundation.md`
 - `docs/task/04_rag_component_architecture.md`
+- `docs/task/05_model_source_selection.md`

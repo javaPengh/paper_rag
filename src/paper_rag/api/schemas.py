@@ -22,13 +22,28 @@ class RuntimeConfigResponse(BaseModel):
     upload_dir: Path = Field(description="上传 PDF 的受管本地存储目录。")
     upload_max_bytes: int = Field(ge=0, description="当前允许的最大上传大小。")
     top_k: int = Field(ge=1, description="默认检索 Top-k。")
-    embedding_model: str = Field(description="API embedding 模式使用的模型名称。")
-    llm_model: str = Field(description="API 问答模式使用的 LLM 模型名称。")
-    local_embedding_model: str = Field(description="本地离线 embedding 模型标识。")
-    local_answer_model: str = Field(description="本地离线答案生成器标识。")
-    api_key_configured: bool = Field(description="是否已配置 OPENAI_API_KEY。")
-    base_url_configured: bool = Field(description="是否已配置 OPENAI_BASE_URL。")
-    recommended_local_index_dir: str = Field(description="建议用于本地 hash 模式的索引目录。")
+    embedding_source: str | None = Field(
+        default=None,
+        description="API embedding 模式当前使用的模型来源；未显式配置外部来源时为空。",
+    )
+    embedding_model: str | None = Field(
+        default=None,
+        description="API embedding 模式使用的模型名称；未显式配置外部模型时为空。",
+    )
+    chat_source: str | None = Field(
+        default=None,
+        description="API 问答模式当前使用的模型来源；未显式配置外部来源时为空。",
+    )
+    chat_model: str | None = Field(
+        default=None,
+        description="API 问答模式使用的对话模型名称；未显式配置外部模型时为空。",
+    )
+    llm_model: str | None = Field(
+        default=None,
+        description="API 问答模式使用的 LLM 模型名称；未显式配置外部模型时为空。",
+    )
+    api_key_configured: bool = Field(description="是否至少配置了一个外部模型来源的 API key。")
+    base_url_configured: bool = Field(description="是否至少配置了一个外部模型来源的 base URL。")
     recommended_api_index_dir: str = Field(description="建议用于真实模型模式的索引目录。")
 
 
@@ -38,6 +53,41 @@ class ComponentModelOptionResponse(BaseModel):
     id: str = Field(description="后端组件工厂接收的模型或本地实现标识。")
     label: str = Field(description="前端下拉框展示的模型名称。")
     description: str = Field(description="说明该模型来源、用途或限制。")
+
+
+class ModelSourceOptionResponse(BaseModel):
+    """API catalog 中的模型来源选项。"""
+
+    id: str = Field(description="前端提交给后端的模型来源 ID。")
+    label: str = Field(description="前端下拉框展示的模型来源名称。")
+    description: str = Field(description="说明该来源的调用方式、用途或限制。")
+    api_key_configured: bool = Field(description="后端是否已经为该来源配置 API 密钥。")
+    base_url_configured: bool = Field(description="后端是否已经为该来源配置基础 URL。")
+    models: list[ComponentModelOptionResponse] = Field(
+        default_factory=list,
+        description="该来源下可供前端选择的模型列表。",
+    )
+
+
+class ModelSelectionCatalogResponse(BaseModel):
+    """API catalog 中某一类模型的当前选择和来源列表。"""
+
+    source: str = Field(description="该模型类别当前建议选中的来源。")
+    model: str | None = Field(
+        default=None,
+        description="该模型类别当前建议选中的模型；外部模型未配置时为空。",
+    )
+    sources: list[ModelSourceOptionResponse] = Field(
+        default_factory=list,
+        description="该模型类别下可供选择的来源列表。",
+    )
+
+
+class ModelCatalogResponse(BaseModel):
+    """API catalog 中的轻量模型选择结构。"""
+
+    embedding: ModelSelectionCatalogResponse = Field(description="embedding 来源和模型选项。")
+    chat: ModelSelectionCatalogResponse = Field(description="对话来源和模型选项。")
 
 
 class ComponentConfigFieldResponse(BaseModel):
@@ -69,7 +119,7 @@ class ComponentDescriptorResponse(BaseModel):
     )
     default_model: str | None = Field(
         default=None,
-        description="该组件未显式指定模型时使用的默认模型。",
+        description="该组件显式配置后的当前模型；没有外部配置时为空。",
     )
     config_fields: list[ComponentConfigFieldResponse] = Field(
         default_factory=list,
@@ -80,6 +130,7 @@ class ComponentDescriptorResponse(BaseModel):
 class ComponentCatalogResponse(BaseModel):
     """Web Inspector 获取的 RAG 组件 catalog。"""
 
+    model_catalog: ModelCatalogResponse = Field(description="前端模型来源和模型下拉框 catalog。")
     reader: list[ComponentDescriptorResponse] = Field(description="可用 Reader 组件。")
     chunker: list[ComponentDescriptorResponse] = Field(description="可用 Chunker 组件。")
     embedder: list[ComponentDescriptorResponse] = Field(description="可用 Embedder 组件。")
@@ -106,6 +157,10 @@ class IndexStatusResponse(BaseModel):
     embedding_model: str | None = Field(
         default=None,
         description="已索引向量使用的 embedding 模型（如已知）。",
+    )
+    embedding_source: str | None = Field(
+        default=None,
+        description="已索引向量使用的 embedding 模型来源（如已知）。",
     )
     built_at: datetime | None = Field(
         default=None,
@@ -283,16 +338,22 @@ class AskRequest(BaseModel):
         default=None,
         description="用于查询 embedding 的模型覆盖值。",
     )
+    embedding_source: str | None = Field(
+        default=None,
+        description="用于查询 embedding 的模型来源覆盖值。",
+    )
+    chat_source: str | None = Field(
+        default=None,
+        description="用于非本地答案生成的对话模型来源覆盖值。",
+    )
+    chat_model: str | None = Field(
+        default=None,
+        description="用于非本地答案生成的对话模型覆盖值。",
+    )
     llm_model: str | None = Field(
         default=None,
-        description="用于非本地答案生成的 LLM 模型覆盖值。",
+        description="旧请求格式使用的 LLM 模型覆盖值，优先使用 chat_model。",
     )
-    local: bool = Field(
-        default=False,
-        description="使用确定性的本地 embedding 和抽取式答案生成。",
-    )
-
-
 class AskResponse(BaseModel):
     """带有引用和检索证据的答案载荷。"""
 

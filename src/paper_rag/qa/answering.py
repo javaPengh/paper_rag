@@ -39,6 +39,10 @@ class OpenAIChatClient:
         default=None,
         metadata={"description": "可选的 OpenAI 兼容聊天端点覆盖。"},
     )
+    source_name: str = field(
+        default="openai",
+        metadata={"description": "对话模型来源，用于评测报告追踪。"},
+    )
 
     def complete(self, *, system_prompt: str, user_prompt: str) -> str:
         """调用聊天提供方并返回非空答案字符串。"""
