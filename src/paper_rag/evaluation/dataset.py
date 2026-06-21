@@ -135,10 +135,16 @@ class EvalCase(BaseModel):
     @field_validator("answer_terms")
     @classmethod
     def validate_answer_terms(cls, value: list[str]) -> list[str]:
-        """规整答案锚点词，同时保留标注者选择的词序。"""
+        """??????????? "/" ???????????"""
         terms = [item.strip() for item in value if item.strip()]
         if not terms:
             raise ValueError("answer_terms must contain at least one non-empty term")
+        for term in terms:
+            alternatives = [part.strip() for part in term.split("/")]
+            if any(not part for part in alternatives):
+                raise ValueError(
+                    "answer_terms slash-separated alternatives must not be empty"
+                )
         return terms
 
     @model_validator(mode="after")

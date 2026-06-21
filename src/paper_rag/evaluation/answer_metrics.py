@@ -7,6 +7,9 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
+
 from pydantic import BaseModel, Field
 
 from paper_rag.domain import Answer, Citation, SearchResult
@@ -251,9 +254,61 @@ def _result_for_citation(
 
 
 def _missing_terms(answer_text: str, expected_terms: list[str]) -> list[str]:
-    """返回答案文本中未覆盖的 answer_terms。"""
-    normalized_answer = answer_text.casefold()
-    return [term for term in expected_terms if term.casefold() not in normalized_answer]
+    """??????????? answer_terms ????"""
+    normalized_answer = _normalize_term_text(answer_text)
+    compact_answer = _compact_ascii_term_text(normalized_answer)
+    missing_terms: list[str] = []
+    for term_expression in expected_terms:
+        alternatives = _answer_term_alternatives(term_expression)
+        if not any(
+            _term_matches_answer(
+                alternative=alternative,
+                normalized_answer=normalized_answer,
+                compact_answer=compact_answer,
+            )
+            for alternative in alternatives
+        ):
+            missing_terms.append(term_expression)
+    return missing_terms
+
+
+def _answer_term_alternatives(term_expression: str) -> list[str]:
+    """??? answer_terms ???????????????"""
+    return [
+        normalized
+        for part in term_expression.split("/")
+        if (normalized := _normalize_term_text(part))
+    ]
+
+
+def _term_matches_answer(
+    *,
+    alternative: str,
+    normalized_answer: str,
+    compact_answer: str,
+) -> bool:
+    """????????????????"""
+    return (
+        alternative in normalized_answer
+        or _compact_ascii_term_text(alternative) in compact_answer
+    )
+
+
+def _normalize_term_text(text: str) -> str:
+    """?? answer_terms ?????????????????"""
+    # ?? Unicode ?????????????????????
+    normalized = unicodedata.normalize("NFKC", text)
+    # ???????????????????????????
+    normalized = re.sub(r"[???????]", "-", normalized)
+    # ????????????????? 24fps / FPS24 ?????
+    normalized = re.sub(r"(?<=\d)(?=[a-zA-Z])", " ", normalized)
+    normalized = re.sub(r"(?<=[a-zA-Z])(?=\d)", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip().casefold()
+
+
+def _compact_ascii_term_text(text: str) -> str:
+    """????????????????? 24fps / sub-sampling ???"""
+    return re.sub(r"(?<=[0-9a-z])[-_/\s]+(?=[0-9a-z])", "", text)
 
 
 def _failed_reasons(metrics: AnswerCaseMetrics) -> list[str]:

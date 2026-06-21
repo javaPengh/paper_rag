@@ -88,6 +88,24 @@ def test_load_eval_dataset_rejects_answerable_case_without_evidence(tmp_path: Pa
         load_eval_dataset(dataset_path, project_root=tmp_path)
 
 
+def test_load_eval_dataset_rejects_empty_slash_alternative_in_answer_terms(tmp_path: Path) -> None:
+    dataset_path, _ = _write_dataset(
+        tmp_path,
+        [
+            {
+                **_case("case_001"),
+                "answer_terms": ["alpha//beta"],
+            }
+        ],
+    )
+
+    with pytest.raises(
+        EvaluationDatasetError,
+        match="slash-separated alternatives must not be empty",
+    ):
+        load_eval_dataset(dataset_path, project_root=tmp_path)
+
+
 def test_load_eval_dataset_rejects_unknown_doc_key(tmp_path: Path) -> None:
     dataset_path, _ = _write_dataset(
         tmp_path,

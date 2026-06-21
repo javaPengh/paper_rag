@@ -26,3 +26,9 @@
 ## 4.开发规范
 - 如果某个值必须由我提供(模型、路径、密钥、连接信息等),而它缺失了,就立即抛出明确错误指出缺了什么,禁止编造或填入占位的默认值。
 - 当你有任何我没有主动允许的兜底或回退策略的设计必须告知我让我审查
+
+## 5.文件编码
+- 在 Windows 下读取文本文件内容时，禁止依赖 PowerShell 默认控制台编码直接输出。
+- 查看 UTF-8 文本文件时，优先使用项目 Python 显式按 UTF-8 读取，例如：
+  D:\ai_study_app\anaconda3\envs\paper_rag\python.exe -c "from pathlib import Path; print(Path('xxx').read_text(encoding='utf-8'))"
+- 修改文件时也必须显式使用 UTF-8 编码。

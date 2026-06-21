@@ -70,6 +70,54 @@ def test_evaluate_answer_case_reports_citation_page_miss(tmp_path: Path) -> None
     assert metrics.failed_reasons == ["paper pp.2-2: citation 未命中页码范围"]
 
 
+def test_evaluate_answer_case_accepts_slash_separated_answer_term_alternatives(
+    tmp_path: Path,
+) -> None:
+    answerable_case = _answerable_case(answer_terms=["alpha/beta", "24 FPS"])
+    dataset = _dataset(tmp_path, [answerable_case])
+    result = _search_result(tmp_path, page_start=2, page_end=2)
+    answer = _answer(
+        question=answerable_case.question,
+        text="beta is preserved after subsampling to 24 fps. [paper.pdf, p.2]",
+        citations=[_citation_from_result(result)],
+    )
+
+    metrics = evaluate_answer_case(
+        dataset=dataset,
+        case=answerable_case,
+        answer=answer,
+        results=[result],
+    )
+
+    assert metrics.passed
+    assert metrics.answer_terms_hit
+    assert metrics.missing_answer_terms == []
+
+
+def test_evaluate_answer_case_normalizes_fullwidth_and_compact_ascii_terms(
+    tmp_path: Path,
+) -> None:
+    answerable_case = _answerable_case(answer_terms=["24 FPS", "subsampling"])
+    dataset = _dataset(tmp_path, [answerable_case])
+    result = _search_result(tmp_path, page_start=2, page_end=2)
+    answer = _answer(
+        question=answerable_case.question,
+        text="The dataset is converted to \uFF12\uFF14fps with sub-sampling. [paper.pdf, p.2]",
+        citations=[_citation_from_result(result)],
+    )
+
+    metrics = evaluate_answer_case(
+        dataset=dataset,
+        case=answerable_case,
+        answer=answer,
+        results=[result],
+    )
+
+    assert metrics.passed
+    assert metrics.answer_terms_hit
+    assert metrics.missing_answer_terms == []
+
+
 def test_evaluate_answer_case_reports_missing_answer_terms(tmp_path: Path) -> None:
     answerable_case = _answerable_case()
     dataset = _dataset(tmp_path, [answerable_case])
@@ -197,7 +245,10 @@ def test_summarize_answer_metrics_counts_answer_and_refusal_success(
     assert summary.failed_case_ids == ["case_answerable_fail"]
 
 
-def _answerable_case(case_id: str = "case_answerable") -> EvalCase:
+def _answerable_case(
+    case_id: str = "case_answerable",
+    answer_terms: list[str] | None = None,
+) -> EvalCase:
     """创建一个需要答案词和 citation 同时命中的可回答 case。"""
     return EvalCase(
         id=case_id,
@@ -211,7 +262,7 @@ def _answerable_case(case_id: str = "case_answerable") -> EvalCase:
                 terms=["alpha"],
             )
         ],
-        answer_terms=["alpha"],
+        answer_terms=answer_terms or ["alpha"],
     )
 
 
