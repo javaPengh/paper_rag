@@ -143,6 +143,17 @@ def test_generator_components_keep_existing_answer_protocol() -> None:
     assert openai_answer.citations
 
 
+def test_generator_keeps_high_score_english_evidence_for_chinese_question() -> None:
+    """????????????????????????????"""
+    result = _search_result()
+
+    answer = ExtractiveGenerator().generate("?????????????", [result])
+
+    assert answer.insufficient_evidence is False
+    assert answer.citations
+    assert answer.evidence_chunk_ids == [result.chunk.id]
+
+
 def test_pdf_reader_and_token_window_chunker_match_existing_functions(tmp_path: Path) -> None:
     """确认 Reader/Chunker 包装层不改变现有解析和切分行为。"""
     pdf_path = _write_test_pdf(tmp_path / "paper.pdf")

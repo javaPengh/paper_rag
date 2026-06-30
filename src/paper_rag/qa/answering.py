@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Protocol
@@ -224,41 +223,14 @@ def filter_usable_results(
     *,
     min_score: float,
 ) -> list[SearchResult]:
-    """按分数和轻量词汇重叠过滤检索到的 chunk，以保证 MVP 安全性。"""
-    question_terms = content_terms(question)
+    """??????????????????? chunk?"""
+    _ = question
     usable: list[SearchResult] = []
     for result in results:
         if result.score < min_score:
             continue
-        if question_terms and not question_terms.intersection(content_terms(result.chunk.text)):
-            continue
         usable.append(result)
     return usable
-
-
-def content_terms(text: str) -> set[str]:
-    """提取用于 MVP 证据充分性过滤的粗粒度词汇锚点。"""
-    stop_words = {
-        "a",
-        "an",
-        "and",
-        "are",
-        "do",
-        "does",
-        "for",
-        "in",
-        "is",
-        "of",
-        "the",
-        "to",
-        "what",
-        "with",
-    }
-    return {
-        token
-        for token in re.findall(r"[\w-]+", text.lower())
-        if len(token) > 2 and token not in stop_words
-    }
 
 
 def summarize_chunk(text: str, *, max_length: int = 260) -> str:
