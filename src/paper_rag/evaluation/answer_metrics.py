@@ -13,7 +13,7 @@ import unicodedata
 from pydantic import BaseModel, Field
 
 from paper_rag.domain import Answer, Citation, SearchResult
-from paper_rag.evaluation.dataset import EvalCase, EvalDataset, EvalEvidence
+from paper_rag.evaluation.dataset import ANSWER_EXPECTATIONS, EvalCase, EvalDataset, EvalEvidence
 from paper_rag.evaluation.matching import (
     document_matches,
     file_name_matches_source,
@@ -124,8 +124,9 @@ def evaluate_answer_case(
         )
         for evidence in case.evidence
     ]
+    requires_cited_answer = case.expectation in ANSWER_EXPECTATIONS
     citation_evidence_hit = None
-    if case.answerable:
+    if requires_cited_answer:
         citation_evidence_hit = bool(citation_matches) and all(
             match.hit for match in citation_matches
         )
@@ -133,7 +134,7 @@ def evaluate_answer_case(
     metrics = AnswerCaseMetrics(
         case_id=case.id,
         answerable=case.answerable,
-        expectation="answer_required" if case.answerable else "refusal_required",
+        expectation=case.expectation,
         answer_generated=answer_generated,
         answered=answered,
         refused=refused,
@@ -157,8 +158,12 @@ def evaluate_answer_case(
 
 def summarize_answer_metrics(case_metrics: list[AnswerCaseMetrics]) -> AnswerMetricSummary:
     """汇总 answer、citation 与 refusal 指标。"""
-    answerable_metrics = [item for item in case_metrics if item.answerable]
-    unanswerable_metrics = [item for item in case_metrics if not item.answerable]
+    answerable_metrics = [
+        item for item in case_metrics if item.expectation in ANSWER_EXPECTATIONS
+    ]
+    unanswerable_metrics = [
+        item for item in case_metrics if item.expectation == "out_of_scope_refusal"
+    ]
     answerable_case_count = len(answerable_metrics)
     unanswerable_case_count = len(unanswerable_metrics)
     answer_success_count = sum(1 for item in answerable_metrics if item.passed)
@@ -254,7 +259,7 @@ def _result_for_citation(
 
 
 def _missing_terms(answer_text: str, expected_terms: list[str]) -> list[str]:
-    """??????????? answer_terms ????"""
+    """计算答案文本中缺失的 answer_terms 表达式。"""
     normalized_answer = _normalize_term_text(answer_text)
     compact_answer = _compact_ascii_term_text(normalized_answer)
     missing_terms: list[str] = []
@@ -273,7 +278,7 @@ def _missing_terms(answer_text: str, expected_terms: list[str]) -> list[str]:
 
 
 def _answer_term_alternatives(term_expression: str) -> list[str]:
-    """??? answer_terms ???????????????"""
+    """展开 answer_terms 中用斜杠声明的 OR 备选项。"""
     return [
         normalized
         for part in term_expression.split("/")
@@ -287,7 +292,7 @@ def _term_matches_answer(
     normalized_answer: str,
     compact_answer: str,
 ) -> bool:
-    """????????????????"""
+    """判断一个归一化备选词是否出现在答案中。"""
     return (
         alternative in normalized_answer
         or _compact_ascii_term_text(alternative) in compact_answer
@@ -295,19 +300,19 @@ def _term_matches_answer(
 
 
 def _normalize_term_text(text: str) -> str:
-    """?? answer_terms ?????????????????"""
-    # ?? Unicode ?????????????????????
+    """对 answer_terms 和答案文本做稳定的轻量归一化。"""
+    # 统一 Unicode 兼容字符，避免全角数字等形式影响匹配。
     normalized = unicodedata.normalize("NFKC", text)
-    # ???????????????????????????
-    normalized = re.sub(r"[???????]", "-", normalized)
-    # ????????????????? 24fps / FPS24 ?????
+    # 把常见破折号和连字符变体统一成普通连字符。
+    normalized = re.sub(r"[\u2010-\u2015\u2212]", "-", normalized)
+    # 给字母和数字边界补空格，兼容 24fps / FPS24 这类写法。
     normalized = re.sub(r"(?<=\d)(?=[a-zA-Z])", " ", normalized)
     normalized = re.sub(r"(?<=[a-zA-Z])(?=\d)", " ", normalized)
     return re.sub(r"\s+", " ", normalized).strip().casefold()
 
 
 def _compact_ascii_term_text(text: str) -> str:
-    """????????????????? 24fps / sub-sampling ???"""
+    """压缩 ASCII 词内部连接符，兼容 24fps / sub-sampling 等变体。"""
     return re.sub(r"(?<=[0-9a-z])[-_/\s]+(?=[0-9a-z])", "", text)
 
 
@@ -317,9 +322,9 @@ def _failed_reasons(metrics: AnswerCaseMetrics) -> list[str]:
         return ["未生成答案"]
 
     reasons: list[str] = []
-    if metrics.answerable:
+    if metrics.expectation in ANSWER_EXPECTATIONS:
         if not metrics.answered:
-            reasons.append("可回答问题被拒答或答案为空")
+            reasons.append("需要证据作答的问题被拒答或答案为空")
         if not metrics.citation_present:
             reasons.append("缺少 citation")
         if not metrics.answer_terms_hit:

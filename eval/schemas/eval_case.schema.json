@@ -18,7 +18,7 @@
       "type": "string",
       "minLength": 1,
       "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
-      "description": "单个数据集内稳定唯一的 case id。"
+      "description": "单个数据集内稳定唯一的 case ID。"
     },
     "question": {
       "type": "string",
@@ -27,11 +27,21 @@
     },
     "answerable": {
       "type": "boolean",
-      "description": "本地 PDF 语料是否包含足够证据回答该问题。"
+      "description": "兼容字段，表示该样本是否要求生成带 citation 的答案；必须与 expectation 保持一致。"
+    },
+    "expectation": {
+      "type": "string",
+      "enum": [
+        "direct_answer",
+        "corrective_answer",
+        "insufficient_detail",
+        "out_of_scope_refusal"
+      ],
+      "description": "评测期望类型；缺失时由 parser 根据 answerable 兼容推导。"
     },
     "evidence": {
       "type": "array",
-      "description": "检索和 citation 应命中的证据组；完全无关的不可回答题可以为空。",
+      "description": "检索和 citation 应命中的多论文证据组；语料外拒答题可以为空。",
       "items": {
         "$ref": "#/$defs/evidenceGroup"
       }
@@ -42,7 +52,8 @@
         "type": "string",
         "minLength": 1
       },
-      "description": "期望出现在最终答案中的关键词或短语；不可回答问题可填写拒答标记。"
+      "minItems": 1,
+      "description": "期望出现在最终答案或拒答文本中的关键词或短语。"
     },
     "reference_answer": {
       "type": "string",
@@ -69,8 +80,31 @@
         "properties": {
           "evidence": {
             "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "expectation": {
+            "enum": [
+              "direct_answer",
+              "corrective_answer",
+              "insufficient_detail"
+            ]
+          }
+        },
+        "required": [
+          "expectation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "answerable": {
+            "const": true
           },
-          "answer_terms": {
+          "evidence": {
             "minItems": 1
           }
         }
@@ -79,18 +113,18 @@
     {
       "if": {
         "properties": {
-          "answerable": {
-            "const": false
+          "expectation": {
+            "const": "out_of_scope_refusal"
           }
         },
         "required": [
-          "answerable"
+          "expectation"
         ]
       },
       "then": {
         "properties": {
-          "answer_terms": {
-            "minItems": 1
+          "answerable": {
+            "const": false
           }
         }
       }

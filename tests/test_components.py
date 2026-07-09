@@ -144,14 +144,26 @@ def test_generator_components_keep_existing_answer_protocol() -> None:
 
 
 def test_generator_keeps_high_score_english_evidence_for_chinese_question() -> None:
-    """????????????????????????????"""
+    """确认中文问题不会再因与英文证据缺少词面交集而被直接拒答。"""
     result = _search_result()
 
-    answer = ExtractiveGenerator().generate("?????????????", [result])
+    answer = ExtractiveGenerator().generate("论文里具体索引了什么内容？", [result])
 
     assert answer.insufficient_evidence is False
     assert answer.citations
     assert answer.evidence_chunk_ids == [result.chunk.id]
+
+
+def test_openai_generator_only_treats_exact_standard_refusal_as_insufficient() -> None:
+    """确认带引用的细节缺失说明不会被误判为标准拒答。"""
+    answer = OpenAIGenerator(chat_client=_DetailMissingChatClient()).generate(
+        "What exact algorithm was used?",
+        [_search_result()],
+    )
+
+    assert answer.insufficient_evidence is False
+    assert answer.citations
+    assert answer.evidence_chunk_ids == ["chunk1"]
 
 
 def test_pdf_reader_and_token_window_chunker_match_existing_functions(tmp_path: Path) -> None:
@@ -199,6 +211,18 @@ class _FakeChatClient:
         assert system_prompt
         assert user_prompt
         return "Paper RAG indexes local PDF papers. [paper.pdf, p.1]"
+
+
+class _DetailMissingChatClient:
+    """返回包含“不足以回答”字样但带引用的非标准拒答。"""
+
+    model_name = "detail-missing-model"
+
+    def complete(self, *, system_prompt: str, user_prompt: str) -> str:
+        """模拟模型用证据说明细节未提供，而不是标准拒答。"""
+        assert system_prompt
+        assert user_prompt
+        return "论文不足以回答具体算法名称，但说明了 Paper RAG indexes local PDF papers. [paper.pdf, p.1]"
 
 
 def _document() -> Document:

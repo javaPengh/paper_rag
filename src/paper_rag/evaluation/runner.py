@@ -91,7 +91,8 @@ class EvalCaseRunResult(BaseModel):
 
     case_id: str = Field(description="对应 golden dataset 中的稳定 case ID。")
     question: str = Field(description="实际提交给 RAG 链路的问题。")
-    answerable: bool = Field(description="人工标注中该问题是否应当可回答。")
+    answerable: bool = Field(description="人工标注中该问题是否应当生成带引用答案。")
+    expectation: str = Field(description="该样本在 golden dataset 中声明的评测期望类型。")
     retrieved_chunk_ids: list[str] = Field(
         default_factory=list,
         description="retrieval 阶段返回的 chunk ID，按排名顺序保存。",
@@ -356,6 +357,7 @@ def format_eval_run_result(result: EvalRunResult) -> str:
             f"retrieval={retrieval_state} "
             f"answer={answer_state} "
             f"answerable={case_result.answerable} "
+            f"expectation={case_result.expectation} "
             f"retrieved={len(case_result.retrieved_chunk_ids)} "
             f"used={len(case_result.used_chunk_ids)} "
             f"citations={len(case_result.citation_labels)} "
@@ -483,6 +485,7 @@ def _run_case(
             case_id=case.id,
             question=case.question,
             answerable=case.answerable,
+            expectation=case.expectation,
             retrieval_metrics=retrieval_metrics,
             answer_metrics=answer_metrics,
             error=str(exc),
@@ -507,6 +510,7 @@ def _run_case(
             case_id=case.id,
             question=case.question,
             answerable=case.answerable,
+            expectation=case.expectation,
             retrieved_chunk_ids=[result.chunk.id for result in results],
             retrieval_metrics=retrieval_metrics,
             answer_metrics=answer_metrics,
@@ -523,6 +527,7 @@ def _run_case(
         case_id=case.id,
         question=case.question,
         answerable=case.answerable,
+        expectation=case.expectation,
         retrieved_chunk_ids=[result.chunk.id for result in results],
         answer_text=answer.answer,
         insufficient_evidence=answer.insufficient_evidence,

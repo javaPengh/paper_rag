@@ -18,7 +18,12 @@ def test_load_eval_dataset_parses_project_golden_dataset() -> None:
 
     assert len(dataset.cases) == 13
     assert dataset.cases[0].id == "golden_001"
+    assert dataset.cases[0].expectation == "direct_answer"
     assert dataset.cases[0].evidence[0].doc_key == "think_in_space"
+    cases_by_id = {case.id: case for case in dataset.cases}
+    assert cases_by_id["golden_005"].expectation == "insufficient_detail"
+    assert cases_by_id["golden_005"].answerable is True
+    assert cases_by_id["golden_009"].expectation == "corrective_answer"
     assert dataset.documents["SIBE-LM"].source_path == Path("eval/papers/SIBE-LM.pdf")
 
 
@@ -46,6 +51,31 @@ def test_load_eval_dataset_ignores_comments_and_blank_lines(tmp_path: Path) -> N
 
     assert dataset.case_ids == ["case_001"]
     assert dataset.resolve_source_path("paper") == tmp_path / "paper.pdf"
+
+
+def test_load_eval_dataset_derives_expectation_from_legacy_answerable(
+    tmp_path: Path,
+) -> None:
+    """确认旧版 answerable 标注仍会被映射成新的 expectation。"""
+    dataset_path, _ = _write_dataset(
+        tmp_path,
+        [
+            _case("case_answerable"),
+            {
+                "id": "case_refusal",
+                "question": "What is outside?",
+                "answerable": False,
+                "evidence": [],
+                "answer_terms": ["不足以回答"],
+                "notes": "",
+            },
+        ],
+    )
+
+    dataset = load_eval_dataset(dataset_path, project_root=tmp_path)
+
+    assert dataset.cases[0].expectation == "direct_answer"
+    assert dataset.cases[1].expectation == "out_of_scope_refusal"
 
 
 def test_load_eval_dataset_rejects_duplicate_case_ids(tmp_path: Path) -> None:
@@ -84,7 +114,7 @@ def test_load_eval_dataset_rejects_answerable_case_without_evidence(tmp_path: Pa
         ],
     )
 
-    with pytest.raises(EvaluationDatasetError, match="answerable cases"):
+    with pytest.raises(EvaluationDatasetError, match="answer-required cases"):
         load_eval_dataset(dataset_path, project_root=tmp_path)
 
 

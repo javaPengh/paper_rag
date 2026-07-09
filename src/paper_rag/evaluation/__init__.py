@@ -12,10 +12,12 @@ from paper_rag.evaluation.answer_metrics import (
     summarize_answer_metrics,
 )
 from paper_rag.evaluation.dataset import (
+    ANSWER_EXPECTATIONS,
     EvalCase,
     EvalDataset,
     EvalDocument,
     EvalEvidence,
+    EvalExpectation,
     load_eval_dataset,
 )
 from paper_rag.evaluation.reporting import build_eval_json_report, write_eval_json_report
@@ -35,6 +37,7 @@ from paper_rag.evaluation.runner import (
 )
 
 __all__ = [
+    "ANSWER_EXPECTATIONS",
     "AnswerCaseMetrics",
     "AnswerMetricSummary",
     "CitationEvidenceMatch",
@@ -43,6 +46,7 @@ __all__ = [
     "EvalDataset",
     "EvalDocument",
     "EvalEvidence",
+    "EvalExpectation",
     "EvalRunConfig",
     "EvalRunResult",
     "RetrievalCaseMetrics",

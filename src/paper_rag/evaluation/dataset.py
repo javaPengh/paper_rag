@@ -8,11 +8,32 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from paper_rag.exceptions import EvaluationDatasetError
+
+
+EvalExpectation = Literal[
+    "direct_answer",
+    "corrective_answer",
+    "insufficient_detail",
+    "out_of_scope_refusal",
+]
+"""评测样本的业务期望类型。
+
+direct_answer 表示证据可直接回答问题；corrective_answer 表示问题前提有误，
+需要用证据纠正；insufficient_detail 表示证据只支持说明某个细节未被论文提供；
+out_of_scope_refusal 表示语料没有足够相关证据，应标准拒答。
+"""
+
+ANSWER_EXPECTATIONS: set[EvalExpectation] = {
+    "direct_answer",
+    "corrective_answer",
+    "insufficient_detail",
+}
+"""需要生成带 citation 答案的评测期望集合。"""
 
 
 class EvalDocument(BaseModel):
@@ -104,7 +125,14 @@ class EvalCase(BaseModel):
         description="提交给 RAG 系统的自然语言问题。",
     )
     answerable: bool = Field(
-        description="固定本地 PDF 语料是否包含足够证据回答该问题。",
+        description="该样本是否要求生成带 citation 的答案；由 expectation 兼容派生。",
+    )
+    expectation: EvalExpectation = Field(
+        default="direct_answer",
+        description=(
+            "评测期望类型：direct_answer 为直接回答，corrective_answer 为纠正错误前提，"
+            "insufficient_detail 为说明细节未提供，out_of_scope_refusal 为标准拒答。"
+        ),
     )
     evidence: list[EvalEvidence] = Field(
         default_factory=list,
@@ -123,6 +151,17 @@ class EvalCase(BaseModel):
         description="人工标注备注，用于说明问题维度、注意事项或审核状态。",
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def derive_expectation_from_answerable(cls, data: Any) -> Any:
+        """兼容旧数据集：没有 expectation 时从 answerable 推导默认期望。"""
+        if not isinstance(data, dict) or "expectation" in data:
+            return data
+        normalized = dict(data)
+        answerable = normalized.get("answerable", True)
+        normalized["expectation"] = "direct_answer" if answerable else "out_of_scope_refusal"
+        return normalized
+
     @field_validator("id", "question")
     @classmethod
     def strip_required_text(cls, value: str) -> str:
@@ -135,7 +174,7 @@ class EvalCase(BaseModel):
     @field_validator("answer_terms")
     @classmethod
     def validate_answer_terms(cls, value: list[str]) -> list[str]:
-        """??????????? "/" ???????????"""
+        """规整答案词，并校验 "/" 分隔的 OR 备选项不为空。"""
         terms = [item.strip() for item in value if item.strip()]
         if not terms:
             raise ValueError("answer_terms must contain at least one non-empty term")
@@ -149,9 +188,12 @@ class EvalCase(BaseModel):
 
     @model_validator(mode="after")
     def validate_answerable_contract(self) -> Self:
-        """要求可回答问题至少包含一组证据，保证后续检索指标有可对照目标。"""
-        if self.answerable and not self.evidence:
-            raise ValueError("answerable cases must include at least one evidence group")
+        """确保 expectation、answerable 和 evidence 的业务契约一致。"""
+        expects_answer = self.expectation in ANSWER_EXPECTATIONS
+        if self.answerable != expects_answer:
+            raise ValueError("answerable must match whether expectation requires a cited answer")
+        if expects_answer and not self.evidence:
+            raise ValueError("answer-required cases must include at least one evidence group")
         return self
 
 

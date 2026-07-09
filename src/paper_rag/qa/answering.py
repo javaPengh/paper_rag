@@ -96,7 +96,7 @@ class OpenAIAnswerGenerator:
             system_prompt=build_system_prompt(),
             user_prompt=build_user_prompt(question, context),
         )
-        insufficient = "不足以回答" in raw_answer
+        insufficient = raw_answer.strip() == INSUFFICIENT_ANSWER
         if insufficient:
             return Answer(
                 question=question,
@@ -166,8 +166,13 @@ def build_system_prompt() -> str:
     """创建用于 LLM 答案生成的依据约束说明。"""
     return (
         "You answer questions using only the provided evidence. "
-        "If the evidence is insufficient, answer exactly in Chinese: "
+        "If no provided evidence is relevant to the question, answer exactly in Chinese: "
         f"{INSUFFICIENT_ANSWER} "
+        "If the evidence contradicts the question premise, do not refuse; "
+        "explain that the premise is wrong, give the corrected facts, and cite evidence. "
+        "If the evidence is relevant but lacks a requested detail, do not invent it; "
+        "state that the paper does not provide that detail, summarize what it does say, "
+        "and cite evidence. "
         "When answering, include source citations in the form [file.pdf, p.1] "
         "or [file.pdf, pp.1-2]. Do not cite sources that are not in the evidence."
     )
@@ -223,7 +228,7 @@ def filter_usable_results(
     *,
     min_score: float,
 ) -> list[SearchResult]:
-    """??????????????????? chunk?"""
+    """按最低检索分数过滤可进入答案生成的证据 chunk。"""
     _ = question
     usable: list[SearchResult] = []
     for result in results:

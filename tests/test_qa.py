@@ -1,3 +1,8 @@
+"""答案生成器和 CLI 格式化输出的单元测试。
+
+这些测试覆盖本地抽取式答案生成器在证据达到最低分数和低于最低分数时的行为。
+"""
+
 from pathlib import Path
 
 from paper_rag.qa import ExtractiveAnswerGenerator, format_answer
@@ -53,10 +58,10 @@ def test_extractive_answer_reports_insufficient_evidence() -> None:
             chunk_index=0,
         ),
         document=document,
-        score=0.8,
+        score=0.01,
     )
 
-    answer = ExtractiveAnswerGenerator().generate("What is the capital of France?", [result])
+    answer = ExtractiveAnswerGenerator().generate("What does Paper RAG index?", [result])
 
     assert answer.insufficient_evidence
     assert "不足以回答" in answer.answer

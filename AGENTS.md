@@ -32,3 +32,6 @@
 - 查看 UTF-8 文本文件时，优先使用项目 Python 显式按 UTF-8 读取，例如：
   D:\ai_study_app\anaconda3\envs\paper_rag\python.exe -c "from pathlib import Path; print(Path('xxx').read_text(encoding='utf-8'))"
 - 修改文件时也必须显式使用 UTF-8 编码。
+
+## 6.当前阶段重点
+当前阶段的核心目标是基于 `eval/datasets/golden.jsonl` 和 `.paper_rag/reports/api_index.json` 的评估结果，分析 RAG 链路中的检索、证据命中、答案生成和引用问题，并优先优化评测指标。

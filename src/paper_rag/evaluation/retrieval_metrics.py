@@ -9,7 +9,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from paper_rag.domain import SearchResult
-from paper_rag.evaluation.dataset import EvalCase, EvalDataset, EvalEvidence
+from paper_rag.evaluation.dataset import ANSWER_EXPECTATIONS, EvalCase, EvalDataset, EvalEvidence
 from paper_rag.evaluation.matching import document_matches, page_ranges_overlap
 
 
@@ -87,11 +87,12 @@ def evaluate_retrieval_case(
         _evaluate_evidence(dataset=dataset, evidence=evidence, results=results)
         for evidence in case.evidence
     ]
-    expectation = "must_hit" if case.answerable else "diagnostic"
+    requires_evidence = case.expectation in ANSWER_EXPECTATIONS
+    expectation = "must_hit" if requires_evidence else "diagnostic"
     hit_at_k = None
     missed_reasons: list[str] = []
 
-    if case.answerable:
+    if requires_evidence:
         hit_at_k = bool(evidence_matches) and all(match.hit for match in evidence_matches)
         if not hit_at_k:
             missed_reasons = _missed_reasons(evidence_matches)
@@ -114,7 +115,9 @@ def summarize_retrieval_metrics(
     top_k: int,
 ) -> RetrievalMetricSummary:
     """汇总 retrieval hit@k，并把不可回答题从分母中分离出来。"""
-    answerable_metrics = [item for item in case_metrics if item.answerable]
+    answerable_metrics = [
+        item for item in case_metrics if item.expectation == "must_hit"
+    ]
     answerable_hit_count = sum(1 for item in answerable_metrics if item.hit_at_k)
     answerable_case_count = len(answerable_metrics)
     hit_rate = (
@@ -125,7 +128,9 @@ def summarize_retrieval_metrics(
         for item in answerable_metrics
         if item.hit_at_k is False
     ]
-    unanswerable_case_count = sum(1 for item in case_metrics if not item.answerable)
+    unanswerable_case_count = sum(
+        1 for item in case_metrics if item.expectation == "diagnostic"
+    )
 
     return RetrievalMetricSummary(
         top_k=top_k,

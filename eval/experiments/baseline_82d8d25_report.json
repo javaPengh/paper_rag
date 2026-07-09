@@ -1,0 +1,1374 @@
+{
+  "schema_version": 1,
+  "dataset": {
+    "path": "D:\\ProgramData\\PythonProject\\paper_rag\\eval\\datasets\\golden.jsonl",
+    "documents_path": "D:\\ProgramData\\PythonProject\\paper_rag\\eval\\datasets\\golden.documents.json",
+    "case_count": 13
+  },
+  "run": {
+    "source_dir": "D:\\ProgramData\\PythonProject\\paper_rag\\eval\\papers",
+    "index_dir": "D:\\ProgramData\\PythonProject\\paper_rag\\.paper_rag\\api_index",
+    "tenant_id": "eval",
+    "top_k": 3,
+    "rag_config": {
+      "reader": {
+        "id": "pdf_reader",
+        "source": null,
+        "model": null,
+        "parameters": {
+          "recursive": true
+        }
+      },
+      "chunker": {
+        "id": "token_window_chunker",
+        "source": null,
+        "model": null,
+        "parameters": {
+          "chunk_size": 800,
+          "chunk_overlap": 120,
+          "encoding_name": "cl100k_base"
+        }
+      },
+      "embedder": {
+        "id": "openai_embedder",
+        "source": "siliconflow",
+        "model": "Qwen/Qwen3-Embedding-4B",
+        "parameters": {}
+      },
+      "retriever": {
+        "id": "vector_retriever",
+        "source": null,
+        "model": null,
+        "parameters": {
+          "top_k": 3
+        }
+      },
+      "generator": {
+        "id": "openai_generator",
+        "source": "siliconflow",
+        "model": "deepseek-ai/DeepSeek-V4-Pro",
+        "parameters": {
+          "min_score": 0.05
+        }
+      }
+    },
+    "index": {
+      "status": "ready",
+      "document_count": 2,
+      "chunk_count": 117,
+      "indexed_chunk_count": 0
+    }
+  },
+  "summary": {
+    "case_count": 13,
+    "error_count": 0,
+    "retrieval": {
+      "top_k": 3,
+      "answerable_case_count": 11,
+      "answerable_hit_count": 6,
+      "retrieval_hit_rate": 0.5454545454545454,
+      "missed_case_ids": [
+        "golden_001",
+        "golden_006",
+        "golden_008",
+        "golden_010",
+        "golden_cross_001"
+      ],
+      "unanswerable_case_count": 2
+    },
+    "answer": {
+      "case_count": 11,
+      "success_count": 4,
+      "success_rate": 0.36363636363636365,
+      "answer_terms_case_count": 13,
+      "answer_terms_hit_count": 5,
+      "answer_terms_hit_rate": 0.38461538461538464
+    },
+    "citation": {
+      "case_count": 11,
+      "hit_count": 4,
+      "hit_rate": 0.36363636363636365
+    },
+    "refusal": {
+      "case_count": 2,
+      "success_count": 1,
+      "success_rate": 0.5
+    },
+    "failed_case_ids": {
+      "retrieval": [
+        "golden_001",
+        "golden_006",
+        "golden_008",
+        "golden_010",
+        "golden_cross_001"
+      ],
+      "answer": [
+        "golden_001",
+        "golden_006",
+        "golden_008",
+        "golden_009",
+        "golden_010",
+        "golden_011",
+        "golden_012",
+        "golden_cross_001"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "golden_001",
+      "question": "论文中提出的 VSI-Bench 基准测试集包含了多少个问答对？其视频数据主要是由哪几个现有的公开数据集汇编而成的？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "miss",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "cd28d3c408024ef378fa5816",
+        "615b9b9fcf08c2dd46d1e3e0"
+      ],
+      "used_chunk_ids": [],
+      "citation_labels": [],
+      "insufficient_evidence": true,
+      "answer_text": "不足以回答：当前检索到的证据不足以支持可靠答案。",
+      "retrieval_metrics": {
+        "case_id": "golden_001",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 3,
+            "expected_terms": [
+              "VSI-Bench",
+              "5,000 question-answer pairs",
+              "ScanNet",
+              "ScanNet++",
+              "ARKitScenes"
+            ],
+            "doc_hit": true,
+            "page_hit": false,
+            "terms_hit": false,
+            "hit": false,
+            "matched_chunk_ids": [],
+            "missing_terms": [
+              "VSI-Bench",
+              "5,000 question-answer pairs",
+              "ScanNet",
+              "ScanNet++",
+              "ARKitScenes"
+            ]
+          }
+        ],
+        "hit_at_k": false,
+        "missed_reasons": [
+          "think_in_space pp.3-3: 未命中页码范围"
+        ]
+      },
+      "answer_metrics": {
+        "case_id": "golden_001",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": false,
+        "refused": true,
+        "citation_present": false,
+        "citation_absent": true,
+        "citation_evidence_hit": false,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 3,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "问答对",
+          "室内",
+          "ScanNet",
+          "ScanNet++",
+          "ARKitScenes"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 问答对, 室内, ScanNet, ScanNet++, ARKitScenes",
+          "think_in_space pp.3-3: citation 未命中文档"
+        ]
+      },
+      "failures": {
+        "retrieval": [
+          "think_in_space pp.3-3: 未命中页码范围"
+        ],
+        "answer": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 问答对, 室内, ScanNet, ScanNet++, ARKitScenes",
+          "think_in_space pp.3-3: citation 未命中文档"
+        ]
+      }
+    },
+    {
+      "id": "golden_002",
+      "question": "论文通过实验得出，主流的语言提示技术（如零样本思维链 Zero-Shot CoT、思维树 ToT 等）能否提升多模态大语言模型（MLLMs）在 VSI-Bench 上的视觉空间推理表现？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "48e0918ffbe1e2218086d35d",
+        "b765aadcb90fcadfee64a469"
+      ],
+      "used_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "48e0918ffbe1e2218086d35d",
+        "b765aadcb90fcadfee64a469"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.7]",
+        "[think in space.pdf, p.1]",
+        "[think in space.pdf, p.2]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "不能。实验结果表明，主流的语言提示技术（如零样本思维链、思维树等）不仅未能提升多模态大语言模型在 VSI-Bench 上的视觉空间推理表现，反而导致平均性能下降 [think in space.pdf, p.7]。具体而言，零样本思维链和思维树使平均性能降低约 4%，自一致性方法也低于无提示基线 1.1% [think in space.pdf, p.7]。论文明确指出，这些在语言推理和通用视觉任务中有效的提示技术对空间推理是有害的 [think in space.pdf, p.7][think in space.pdf, p.1][think in space.pdf, p.2]。",
+      "retrieval_metrics": {
+        "case_id": "golden_002",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 7,
+            "expected_terms": [
+              "CoT",
+              "Zero-Shot Chain-of-Thought",
+              "Self-Consistency w/ CoT",
+              "Tree-of-Thoughts (ToT)"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_002",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 7,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.7]"
+            ],
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "failures": {
+        "retrieval": [],
+        "answer": []
+      }
+    },
+    {
+      "id": "golden_003",
+      "question": "在本文的视觉-空间智能分类体系中，自我中心到异我中心转换具体包含哪些子能力？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "aa9bfe6ba90f21cbdb64c18b",
+        "b765aadcb90fcadfee64a469",
+        "58cba1f1d69b9af2aa2512e5"
+      ],
+      "used_chunk_ids": [
+        "aa9bfe6ba90f21cbdb64c18b",
+        "b765aadcb90fcadfee64a469",
+        "58cba1f1d69b9af2aa2512e5"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.2]",
+        "[think in space.pdf, p.2]",
+        "[think in space.pdf, p.6]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "在本文的视觉-空间智能分类体系中，自我中心到异我中心转换（Egocentric-allocentric Transformation）具体包含以下两项子能力：\n\n- **视觉空间工作记忆**（Visuospatial Working Memory）\n- **视角可视化**（Perspective Visualization）\n\n依据来自图2的分类结构以及正文说明：“This transformation relies on visualizing new perspectives and on visuospatial working memory” [think in space.pdf, p.2]。",
+      "retrieval_metrics": {
+        "case_id": "golden_003",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 2,
+            "page_end": 3,
+            "expected_terms": [
+              "Egocentric-allocentric Transformation",
+              "Visuospatial Working Memory",
+              "Perspective Visualization"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "aa9bfe6ba90f21cbdb64c18b",
+              "b765aadcb90fcadfee64a469"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_003",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 2,
+            "page_end": 3,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.2]",
+              "[think in space.pdf, p.2]"
+            ],
+            "matched_chunk_ids": [
+              "aa9bfe6ba90f21cbdb64c18b",
+              "b765aadcb90fcadfee64a469"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "failures": {
+        "retrieval": [],
+        "answer": []
+      }
+    },
+    {
+      "id": "golden_004",
+      "question": "顶级开源多模态大模型在 VSI-Bench 上的空间理解表现是否已经完全追平或超越了现有的闭源商业大模型？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "bc7723dd06f0b40c64a5268f",
+        "f6ef78a58433e91803532deb",
+        "b25340ae4756b4585c1cd916"
+      ],
+      "used_chunk_ids": [
+        "bc7723dd06f0b40c64a5268f",
+        "f6ef78a58433e91803532deb",
+        "b25340ae4756b4585c1cd916"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.5]",
+        "[SIBE-LM.pdf, p.11]",
+        "[think in space.pdf, p.5]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "根据提供的证据，顶级开源多模态大模型在 VSI-Bench 上的空间理解表现**尚未完全追平或超越**现有的闭源商业大模型。证据明确指出，尽管 LLaVA-Video-72B 和 LLaVA-OneVision-72B 等顶级开源模型表现出高度竞争力，但它们仍落后于领先的闭源模型 Gemini-1.5 Pro 约 4% 至 5% [think in space.pdf, p.5]。此外，VSI-Bench (tiny) 的评分表也显示，开源模型的平均得分普遍低于 Gemini-1.5 Pro 等闭源模型 [think in space.pdf, p.5]。因此，差距依然存在，并未实现完全追平或超越。",
+      "retrieval_metrics": {
+        "case_id": "golden_004",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 5,
+            "page_end": 5,
+            "expected_terms": [
+              "LLaVA-Video-72B",
+              "LLaVA-OneVision-72B",
+              "Gemini-1.5 Pro",
+              "4%",
+              "5%"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "bc7723dd06f0b40c64a5268f",
+              "b25340ae4756b4585c1cd916"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_004",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 5,
+            "page_end": 5,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.5]",
+              "[think in space.pdf, p.5]"
+            ],
+            "matched_chunk_ids": [
+              "bc7723dd06f0b40c64a5268f",
+              "b25340ae4756b4585c1cd916"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "failures": {
+        "retrieval": [],
+        "answer": []
+      }
+    },
+    {
+      "id": "golden_005",
+      "question": "在数据收集与统一阶段，对于 ScanNet 数据集的视频，论文具体使用了哪种视频插帧算法来将其转换为 24 FPS 的连续视频？",
+      "answerable": false,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "diagnostic",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "29cadfc92a634d5ba803cfbd",
+        "cd28d3c408024ef378fa5816"
+      ],
+      "used_chunk_ids": [],
+      "citation_labels": [],
+      "insufficient_evidence": true,
+      "answer_text": "不足以回答：当前检索到的证据不足以支持可靠答案。",
+      "retrieval_metrics": {
+        "case_id": "golden_005",
+        "answerable": false,
+        "expectation": "diagnostic",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 13,
+            "page_end": 13,
+            "expected_terms": [
+              "ScanNet",
+              "frames",
+              "videos",
+              "24 FPS"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "e5e5b4ceeabe6828ded3a1da"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": null,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_005",
+        "answerable": false,
+        "expectation": "refusal_required",
+        "answer_generated": true,
+        "answered": false,
+        "refused": true,
+        "citation_present": false,
+        "citation_absent": true,
+        "citation_evidence_hit": null,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 13,
+            "page_end": 13,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "failures": {
+        "retrieval": [],
+        "answer": []
+      }
+    },
+    {
+      "id": "golden_006",
+      "question": "为了让多模态大模型输出其内部的“认知地图”，研究者是如何设计提示词以规范模型坐标输出格式的？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "miss",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "a5cfdc5e24dfc20888feeded",
+        "8d0f8bcbee205a49785cbdea"
+      ],
+      "used_chunk_ids": [],
+      "citation_labels": [],
+      "insufficient_evidence": true,
+      "answer_text": "不足以回答：当前检索到的证据不足以支持可靠答案。",
+      "retrieval_metrics": {
+        "case_id": "golden_006",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 15,
+            "page_end": 16,
+            "expected_terms": [
+              "10x10 grid",
+              "JSON format",
+              "dictionary"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": false,
+            "hit": false,
+            "matched_chunk_ids": [
+              "8d0f8bcbee205a49785cbdea"
+            ],
+            "missing_terms": [
+              "JSON format",
+              "dictionary"
+            ]
+          }
+        ],
+        "hit_at_k": false,
+        "missed_reasons": [
+          "think_in_space pp.15-16: 缺少证据词 JSON format, dictionary"
+        ]
+      },
+      "answer_metrics": {
+        "case_id": "golden_006",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": false,
+        "refused": true,
+        "citation_present": false,
+        "citation_absent": true,
+        "citation_evidence_hit": false,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 15,
+            "page_end": 16,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "10x10",
+          "网格",
+          "字典",
+          "JSON"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 10x10, 网格, 字典, JSON",
+          "think_in_space pp.15-16: citation 未命中文档"
+        ]
+      },
+      "failures": {
+        "retrieval": [
+          "think_in_space pp.15-16: 缺少证据词 JSON format, dictionary"
+        ],
+        "answer": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 10x10, 网格, 字典, JSON",
+          "think_in_space pp.15-16: citation 未命中文档"
+        ]
+      }
+    },
+    {
+      "id": "golden_007",
+      "question": "为什么主流的语言提示技术（如 CoT）无法提升模型在基准测试上的表现，而让模型显式生成“认知地图”却能改善空间距离推理？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "f19b3e06ccef0fc25e5750de",
+        "8d0f8bcbee205a49785cbdea"
+      ],
+      "used_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "f19b3e06ccef0fc25e5750de",
+        "8d0f8bcbee205a49785cbdea"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.7]",
+        "[think in space.pdf, p.8]",
+        "[think in space.pdf, p.15]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "主流语言提示技术（如 CoT）无法提升模型在基准测试上的表现，是因为 VSI-Bench 评估的是视觉空间推理能力，而非纯语言推理能力。证据表明，这些技术虽然能提升一般视频理解任务（如 VideoMME）的表现，但在空间推理上反而有害，导致平均性能下降约 4% [think in space.pdf, p.7]。这说明仅靠增强语言能力无法解决空间推理问题。\n\n而让模型显式生成“认知地图”能改善空间距离推理，是因为它促使模型构建显式的空间心理表征。实验显示，使用认知地图后，模型的相对距离准确率提升了 10% [think in space.pdf, p.8]。认知地图强制模型形成全局一致的拓扑结构，弥补了模型仅从离散视频帧中形成局部世界模型的不足，从而更准确地回忆和推理空间距离 [think in space.pdf, pp.7-8]。",
+      "retrieval_metrics": {
+        "case_id": "golden_007",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 8,
+            "expected_terms": [
+              "harmful for spatial reasoning",
+              "local world models",
+              "generating and using cognitive maps"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2",
+              "f19b3e06ccef0fc25e5750de"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_007",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 8,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.7]",
+              "[think in space.pdf, p.8]"
+            ],
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2",
+              "f19b3e06ccef0fc25e5750de"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "failures": {
+        "retrieval": [],
+        "answer": []
+      }
+    },
+    {
+      "id": "golden_008",
+      "question": "论文中展示了 MLLMs 在 VSI-Bench 中不同任务类型的错误分类占比（Error Breakdown by Task），该图表编号是什么？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "miss",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "58cba1f1d69b9af2aa2512e5",
+        "5b2d3fbefad1f5f4cec53b1f",
+        "e5244c7bbad5795554d31c31"
+      ],
+      "used_chunk_ids": [],
+      "citation_labels": [],
+      "insufficient_evidence": true,
+      "answer_text": "不足以回答：当前检索到的证据不足以支持可靠答案。",
+      "retrieval_metrics": {
+        "case_id": "golden_008",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 6,
+            "expected_terms": [
+              "Error Breakdown by Task",
+              "Figure 7"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": false,
+            "hit": false,
+            "matched_chunk_ids": [
+              "58cba1f1d69b9af2aa2512e5"
+            ],
+            "missing_terms": [
+              "Error Breakdown by Task"
+            ]
+          }
+        ],
+        "hit_at_k": false,
+        "missed_reasons": [
+          "think_in_space pp.6-6: 缺少证据词 Error Breakdown by Task"
+        ]
+      },
+      "answer_metrics": {
+        "case_id": "golden_008",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": false,
+        "refused": true,
+        "citation_present": false,
+        "citation_absent": true,
+        "citation_evidence_hit": false,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 6,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "图7/Figure 7"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 图7/Figure 7",
+          "think_in_space pp.6-6: citation 未命中文档"
+        ]
+      },
+      "failures": {
+        "retrieval": [
+          "think_in_space pp.6-6: 缺少证据词 Error Breakdown by Task"
+        ],
+        "answer": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 图7/Figure 7",
+          "think_in_space pp.6-6: citation 未命中文档"
+        ]
+      }
+    },
+    {
+      "id": "golden_009",
+      "question": "作者为什么要将ScanNet++的单帧画面合成为30fps的视频？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "29cadfc92a634d5ba803cfbd",
+        "cd28d3c408024ef378fa5816"
+      ],
+      "used_chunk_ids": [],
+      "citation_labels": [],
+      "insufficient_evidence": true,
+      "answer_text": "不足以回答：当前检索到的证据不足以支持可靠答案。",
+      "retrieval_metrics": {
+        "case_id": "golden_009",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 13,
+            "page_end": 13,
+            "expected_terms": [
+              "individual frames",
+              "24 FPS",
+              "subsampling ScanNet++",
+              "30 FPS"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "e5e5b4ceeabe6828ded3a1da"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_009",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": false,
+        "refused": true,
+        "citation_present": false,
+        "citation_absent": true,
+        "citation_evidence_hit": false,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 13,
+            "page_end": 13,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "ScanNet",
+          "24 FPS",
+          "降采样/subsampling"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 ScanNet, 24 FPS, 降采样/subsampling",
+          "think_in_space pp.13-13: citation 未命中文档"
+        ]
+      },
+      "failures": {
+        "retrieval": [],
+        "answer": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 ScanNet, 24 FPS, 降采样/subsampling",
+          "think_in_space pp.13-13: citation 未命中文档"
+        ]
+      }
+    },
+    {
+      "id": "golden_010",
+      "question": "构建VSI-Bench，作者具体做了哪些工作？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "miss",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "472e0b6f80f0df6735a24c2a",
+        "b25340ae4756b4585c1cd916"
+      ],
+      "used_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "472e0b6f80f0df6735a24c2a",
+        "b25340ae4756b4585c1cd916"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.13]",
+        "[SIBE-LM.pdf, p.10]",
+        "[think in space.pdf, p.5]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "根据提供的证据，作者在构建VSI-Bench时，具体做了以下工作：\n\n在数据集收集与统一方面，作者从ARKitScenes、ScanNet++和ScanNet三个数据集中分别收集了150、50和88个样本。在视频处理上，将ScanNet的独立帧转换为24 FPS的连续视频，将ScanNet++和ARKitScenes的视频下采样至30 FPS，并将所有视频分辨率统一为640×480像素，同时标准化了ARKitScenes中视频的旋转方向。由于各数据集标注结构不同，作者将其统一为包含数据集、视频路径、房间大小、房间中心、物体计数和物体边界框等属性的标准化元信息格式，并说明了房间大小和中心的计算方法。此外，作者还精心筛选了物体类别，排除了稀有类别和尺寸极小的物体，并实施了类别重映射以确保词汇一致性 [think in space.pdf, p.13]。\n\n在问答对生成方面，作者为每个问答对定义了包含问题ID、源数据集、任务类型、视频路径、问题、带字母答案的多项选择选项以及语言或数值真实答案等属性。对于数值答案任务，其生成的多项选择选项是在真实答案的上下界因子之间采样，并在选项过于接近时重新采样。作者还对每个场景的每个任务的问题数量进行了子采样，以防止场景或任务被过度代表，并尽可能均匀地分布多项选择任务的字母答案 [think in space.pdf, p.13]。",
+      "retrieval_metrics": {
+        "case_id": "golden_010",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 4,
+            "expected_terms": [
+              "Benchmark Construction",
+              "Data Collection and Unification",
+              "Question-Answer Generation",
+              "Human-in-the-loop Quality Review"
+            ],
+            "doc_hit": true,
+            "page_hit": false,
+            "terms_hit": false,
+            "hit": false,
+            "matched_chunk_ids": [],
+            "missing_terms": [
+              "Benchmark Construction",
+              "Data Collection and Unification",
+              "Question-Answer Generation",
+              "Human-in-the-loop Quality Review"
+            ]
+          }
+        ],
+        "hit_at_k": false,
+        "missed_reasons": [
+          "think_in_space pp.3-4: 未命中页码范围"
+        ]
+      },
+      "answer_metrics": {
+        "case_id": "golden_010",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": false,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 4,
+            "doc_hit": true,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "数据收集与统一",
+          "质量审查"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "缺少答案词 数据收集与统一, 质量审查",
+          "think_in_space pp.3-4: citation 未命中页码范围"
+        ]
+      },
+      "failures": {
+        "retrieval": [
+          "think_in_space pp.3-4: 未命中页码范围"
+        ],
+        "answer": [
+          "缺少答案词 数据收集与统一, 质量审查",
+          "think_in_space pp.3-4: citation 未命中页码范围"
+        ]
+      }
+    },
+    {
+      "id": "golden_011",
+      "question": "论文在实验中是如何调整参数或设计提示词的，从而使得思维链（Chain-of-Thought）等语言推理技术大幅提升了模型在“房间大小（Room Size）”估计任务上的准确率？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "8d0f8bcbee205a49785cbdea",
+        "c9b7e8352702dcb7288defce"
+      ],
+      "used_chunk_ids": [],
+      "citation_labels": [],
+      "insufficient_evidence": true,
+      "answer_text": "不足以回答：当前检索到的证据不足以支持可靠答案。",
+      "retrieval_metrics": {
+        "case_id": "golden_011",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 7,
+            "page_end": 7,
+            "expected_terms": [
+              "room size",
+              "8% to 21% decrease",
+              "unreliable",
+              "downright harmful"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_011",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": false,
+        "refused": true,
+        "citation_present": false,
+        "citation_absent": true,
+        "citation_evidence_hit": false,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 7,
+            "page_end": 7,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "下降/没有提升/有害/decrease"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 下降/没有提升/有害/decrease",
+          "think_in_space pp.7-7: citation 未命中文档"
+        ]
+      },
+      "failures": {
+        "retrieval": [],
+        "answer": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 下降/没有提升/有害/decrease",
+          "think_in_space pp.7-7: citation 未命中文档"
+        ]
+      }
+    },
+    {
+      "id": "golden_012",
+      "question": "根据论文对最佳模型 Gemini-1.5 Pro 的错误分析，在“视觉感知错误（Visual Perception Error）”这一类错误中，模型出错最多的 Top-3 问题类别分别是什么？",
+      "answerable": false,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "diagnostic",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "e5244c7bbad5795554d31c31",
+        "489e52c52a6f2268ec25051f",
+        "58cba1f1d69b9af2aa2512e5"
+      ],
+      "used_chunk_ids": [],
+      "citation_labels": [],
+      "insufficient_evidence": true,
+      "answer_text": "不足以回答：当前检索到的证据不足以支持可靠答案。",
+      "retrieval_metrics": {
+        "case_id": "golden_012",
+        "answerable": false,
+        "expectation": "diagnostic",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 5,
+            "page_end": 6,
+            "expected_terms": [
+              "Visual perception error",
+              "misclassified object categories",
+              "Error Analysis"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "58cba1f1d69b9af2aa2512e5"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": null,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_012",
+        "answerable": false,
+        "expectation": "refusal_required",
+        "answer_generated": true,
+        "answered": false,
+        "refused": true,
+        "citation_present": false,
+        "citation_absent": true,
+        "citation_evidence_hit": null,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 5,
+            "page_end": 6,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "object count",
+          "relative distance",
+          "appearance order"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "缺少拒答词 object count, relative distance, appearance order"
+        ]
+      },
+      "failures": {
+        "retrieval": [],
+        "answer": [
+          "缺少拒答词 object count, relative distance, appearance order"
+        ]
+      }
+    },
+    {
+      "id": "golden_cross_001",
+      "question": "VSI-Bench的问答对是否覆盖了空间智能中的基础感知任务的主要维度？",
+      "answerable": true,
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "miss",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "fd518e0bbf42e9c18bbacb69",
+        "6ed7be2f2e8cf7a08f0b4523",
+        "bac5da81e48b88d15799f67c"
+      ],
+      "used_chunk_ids": [],
+      "citation_labels": [],
+      "insufficient_evidence": true,
+      "answer_text": "不足以回答：当前检索到的证据不足以支持可靠答案。",
+      "retrieval_metrics": {
+        "case_id": "golden_cross_001",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 4,
+            "expected_terms": [
+              "object count",
+              "measurement estimation"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "fd518e0bbf42e9c18bbacb69"
+            ],
+            "missing_terms": []
+          },
+          {
+            "doc_key": "SIBE-LM",
+            "page_start": 6,
+            "page_end": 7,
+            "expected_terms": [
+              "basic perception",
+              "Attributes",
+              "States",
+              "shape, color, size"
+            ],
+            "doc_hit": true,
+            "page_hit": false,
+            "terms_hit": false,
+            "hit": false,
+            "matched_chunk_ids": [],
+            "missing_terms": [
+              "basic perception",
+              "Attributes",
+              "States",
+              "shape, color, size"
+            ]
+          }
+        ],
+        "hit_at_k": false,
+        "missed_reasons": [
+          "SIBE-LM pp.6-7: 未命中页码范围"
+        ]
+      },
+      "answer_metrics": {
+        "case_id": "golden_cross_001",
+        "answerable": true,
+        "expectation": "answer_required",
+        "answer_generated": true,
+        "answered": false,
+        "refused": true,
+        "citation_present": false,
+        "citation_absent": true,
+        "citation_evidence_hit": false,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 4,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          },
+          {
+            "doc_key": "SIBE-LM",
+            "page_start": 6,
+            "page_end": 7,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "configurational tasks",
+          "物体计数",
+          "属性",
+          "状态",
+          "颜色",
+          "形状"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 configurational tasks, 物体计数, 属性, 状态, 颜色, 形状",
+          "think_in_space pp.3-4: citation 未命中文档",
+          "SIBE-LM pp.6-7: citation 未命中文档"
+        ]
+      },
+      "failures": {
+        "retrieval": [
+          "SIBE-LM pp.6-7: 未命中页码范围"
+        ],
+        "answer": [
+          "可回答问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 configurational tasks, 物体计数, 属性, 状态, 颜色, 形状",
+          "think_in_space pp.3-4: citation 未命中文档",
+          "SIBE-LM pp.6-7: citation 未命中文档"
+        ]
+      }
+    }
+  ]
+}

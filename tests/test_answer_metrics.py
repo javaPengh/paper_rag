@@ -141,6 +141,68 @@ def test_evaluate_answer_case_reports_missing_answer_terms(tmp_path: Path) -> No
     assert metrics.failed_reasons == ["缺少答案词 alpha"]
 
 
+def test_evaluate_answer_case_passes_insufficient_detail_with_citation(
+    tmp_path: Path,
+) -> None:
+    """确认细节缺失题需要带证据说明论文未提供该细节。"""
+    detail_case = _answerable_case(
+        case_id="case_insufficient_detail",
+        expectation="insufficient_detail",
+        answer_terms=["does not specify", "alpha"],
+    )
+    dataset = _dataset(tmp_path, [detail_case])
+    result = _search_result(tmp_path, page_start=2, page_end=2)
+    answer = _answer(
+        question=detail_case.question,
+        text="The paper does not specify that detail; it only states alpha. [paper.pdf, p.2]",
+        citations=[_citation_from_result(result)],
+    )
+
+    metrics = evaluate_answer_case(
+        dataset=dataset,
+        case=detail_case,
+        answer=answer,
+        results=[result],
+    )
+
+    assert metrics.passed
+    assert metrics.expectation == "insufficient_detail"
+    assert metrics.answered
+    assert metrics.citation_evidence_hit is True
+
+
+def test_evaluate_answer_case_rejects_standard_refusal_for_corrective_answer(
+    tmp_path: Path,
+) -> None:
+    """确认纠错题不能用标准拒答代替带引用的纠正答案。"""
+    corrective_case = _answerable_case(
+        case_id="case_corrective",
+        expectation="corrective_answer",
+    )
+    dataset = _dataset(tmp_path, [corrective_case])
+    result = _search_result(tmp_path, page_start=2, page_end=2)
+    answer = _answer(
+        question=corrective_case.question,
+        text="不足以回答：当前检索到的证据不足以支持可靠答案。",
+        citations=[],
+        insufficient=True,
+    )
+
+    metrics = evaluate_answer_case(
+        dataset=dataset,
+        case=corrective_case,
+        answer=answer,
+        results=[result],
+    )
+
+    assert not metrics.passed
+    assert metrics.expectation == "corrective_answer"
+    assert metrics.failed_reasons[:2] == [
+        "需要证据作答的问题被拒答或答案为空",
+        "缺少 citation",
+    ]
+
+
 def test_evaluate_answer_case_passes_unanswerable_refusal(tmp_path: Path) -> None:
     unanswerable_case = _unanswerable_case()
     dataset = _dataset(tmp_path, [unanswerable_case])
@@ -248,12 +310,14 @@ def test_summarize_answer_metrics_counts_answer_and_refusal_success(
 def _answerable_case(
     case_id: str = "case_answerable",
     answer_terms: list[str] | None = None,
+    expectation: str = "direct_answer",
 ) -> EvalCase:
     """创建一个需要答案词和 citation 同时命中的可回答 case。"""
     return EvalCase(
         id=case_id,
         question="What evidence is present?",
         answerable=True,
+        expectation=expectation,
         evidence=[
             EvalEvidence(
                 doc_key="paper",
@@ -272,6 +336,7 @@ def _unanswerable_case() -> EvalCase:
         id="case_unanswerable",
         question="What is outside the corpus?",
         answerable=False,
+        expectation="out_of_scope_refusal",
         evidence=[],
         answer_terms=["不足以回答"],
     )

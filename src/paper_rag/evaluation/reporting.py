@@ -13,7 +13,7 @@ from typing import Any
 
 from paper_rag.evaluation.runner import EvalCaseRunResult, EvalRunResult
 
-REPORT_SCHEMA_VERSION = 1
+REPORT_SCHEMA_VERSION = 2
 
 
 def build_eval_json_report(result: EvalRunResult) -> dict[str, Any]:
@@ -87,6 +87,7 @@ def _case_report(case_result: EvalCaseRunResult) -> dict[str, Any]:
         "id": case_result.case_id,
         "question": case_result.question,
         "answerable": case_result.answerable,
+        "expectation": case_result.expectation,
         "status": "error" if case_result.error else "ok",
         "error": case_result.error,
         "retrieval_state": _retrieval_state(case_result),

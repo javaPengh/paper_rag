@@ -35,6 +35,7 @@
   "id": "golden_001",
   "question": "问题文本",
   "answerable": true,
+  "expectation": "direct_answer",
   "evidence": [
     {
       "doc_key": "think_in_space",
@@ -54,12 +55,13 @@
 - `id`：单条 case 的稳定 ID。后续报告和回归对比依赖它，不应随意改名。
 - `question`：提交给 RAG 系统的自然语言问题。
 - `answerable`：固定评测语料是否足以回答该问题。
+- `expectation`：评测期望类型，`direct_answer` 表示直接回答，`corrective_answer` 表示问题前提有误需要纠正，`insufficient_detail` 表示证据可以说明论文未提供某个细节，`out_of_scope_refusal` 表示语料没有相关证据时才标准拒答。
 - `evidence`：可回答问题应命中的人工证据。不可回答问题可以为空。
 - `evidence[].doc_key`：证据所在文档短键，必须存在于 `golden.documents.json`。
 - `evidence[].page_start` / `page_end`：证据页码范围，使用从 1 开始的闭区间。
 - `evidence[].terms`：期望出现在检索证据文本里的原文锚点词，用于判断是否真正命中证据。
 - `answer_terms`：期望出现在最终答案或拒答文本里的关键词。
-- `answer_terms`?????? AND ???????????? `/` ?? OR??? `"??/??"`?
+- `answer_terms`：多个词条之间是 AND 关系；单个词条内可以用 `/` 表示 OR 备选，例如 `下降/没有提升`。
 - `reference_answer`：人工参考答案，当前主要用于人工复核，后续可扩展 answer quality 指标。
 - `notes`：人工标注备注，不参与自动评分。
 
@@ -69,7 +71,7 @@
 - 不可回答问题必须确认固定语料没有足够证据回答。
 - `evidence[].terms` 应选择能定位原文的短词或短语，不要填过长段落。
 - `answer_terms` 应选择判断答案是否覆盖核心信息所需的关键词，不要要求完整复述。
-- `answer_terms` ????????????????????????????? `/` ???
+- `answer_terms` 应选择判断答案是否覆盖核心信息所需的关键词，不要要求完整复述；需要表达同义备选时可用 `/` 分隔。
 - 跨文档问题应在 `evidence` 中写多组证据，每组证据分别填写自己的 `doc_key` 和页码。
 
 ## 运行评测
