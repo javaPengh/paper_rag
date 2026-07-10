@@ -13,7 +13,7 @@ from typing import Any
 
 from paper_rag.evaluation.runner import EvalCaseRunResult, EvalRunResult
 
-REPORT_SCHEMA_VERSION = 2
+REPORT_SCHEMA_VERSION = 3
 
 
 def build_eval_json_report(result: EvalRunResult) -> dict[str, Any]:
@@ -31,6 +31,7 @@ def build_eval_json_report(result: EvalRunResult) -> dict[str, Any]:
             "tenant_id": result.tenant_id,
             "top_k": result.top_k,
             "rag_config": result.rag_config.model_dump(mode="json"),
+            "judge": result.judge_config.model_dump(mode="json"),
             "index": {
                 "status": result.index_result.status.status,
                 "document_count": result.index_result.status.document_count,
@@ -60,9 +61,11 @@ def build_eval_json_report(result: EvalRunResult) -> dict[str, Any]:
                 "success_count": result.answer_summary.refusal_success_count,
                 "success_rate": result.answer_summary.refusal_success_rate,
             },
+            "judge": result.judge_summary.model_dump(mode="json"),
             "failed_case_ids": {
                 "retrieval": result.retrieval_summary.missed_case_ids,
                 "answer": result.answer_summary.failed_case_ids,
+                "judge": result.judge_summary.failed_case_ids,
             },
         },
         "cases": [_case_report(case_result) for case_result in result.case_results],
@@ -107,6 +110,11 @@ def _case_report(case_result: EvalCaseRunResult) -> dict[str, Any]:
             if case_result.answer_metrics is not None
             else None
         ),
+        "judge_metrics": (
+            case_result.judge_metrics.model_dump(mode="json")
+            if case_result.judge_metrics is not None
+            else None
+        ),
         "failures": {
             "retrieval": (
                 case_result.retrieval_metrics.missed_reasons
@@ -117,6 +125,15 @@ def _case_report(case_result: EvalCaseRunResult) -> dict[str, Any]:
                 case_result.answer_metrics.failed_reasons
                 if case_result.answer_metrics is not None
                 else []
+            ),
+            "judge": (
+                [case_result.judge_metrics.error]
+                if case_result.judge_metrics is not None and case_result.judge_metrics.error
+                else (
+                    []
+                    if case_result.judge_metrics is None or case_result.judge_metrics.passed
+                    else [case_result.judge_metrics.overall_reason]
+                )
             ),
         },
     }

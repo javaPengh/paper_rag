@@ -28,9 +28,11 @@
 | `answerable` | boolean | 是 | 兼容字段，表示该样本是否要求生成带 citation 的答案；它必须与 `expectation` 保持一致。 |
 | `expectation` | string | 否 | 评测期望类型。旧数据缺失该字段时，会根据 `answerable` 自动推导。 |
 | `evidence` | object array | 是 | 检索和 citation 应命中的证据组。它是多证据字段，天然支持跨页、跨论文和多个独立证据范围。 |
-| `answer_terms` | string array | 是 | 期望出现在最终答案或拒答文本中的关键词或短语。多个顶层词条是 AND 关系。 |
+| `answer_terms` | string array | 是 | 轻量词面检查字段，期望出现在最终答案或拒答文本中的关键词或短语。多个顶层词条是 AND 关系。 |
+| `evaluation_requirements` | string array | 否 | 可选的语义评估要求，用于 LLM judge 逐条判断复杂答案是否满足人工预期；缺省为空数组。 |
 | `reference_answer` | string | 否 | 人工撰写的参考答案，供人工复核或后续 answer quality 指标使用。 |
-| `notes` | string | 是 | 人工审核备注、题型、假设或注意事项，不参与自动评分。 |
+| 
+otes` | string | 是 | 人工审核备注、题型、假设或注意事项，不参与自动评分。 |
 
 `answerable` 不再单独决定题目业务语义。当前评测应优先查看 `expectation`：
 
@@ -86,13 +88,14 @@
 - 对英文论文，专业名词建议保持原文写法，例如 `VSI-Bench`、`SI'Bench`。
 - term 匹配会做大小写不敏感和连续空白归一化，但不会做中英翻译、同义词扩展或语义匹配。
 
-`answer_terms` 用于判断最终答案是否覆盖关键结论：
+`answer_terms` 用于判断最终答案是否覆盖关键结论，但它只承担 smoke check 职责：
 
 - 多个顶层词条之间是 AND 关系，答案需要覆盖全部词条。
 - 单个词条内可以用 `/` 表示 OR 备选，例如 `下降/没有提升`。
 - 对 `out_of_scope_refusal`，`answer_terms` 应包含标准拒答文本中的关键标记，例如 `不足以回答`。
 - 对 `corrective_answer`，`answer_terms` 应同时覆盖纠错方向和关键证据结论。
 - 对 `insufficient_detail`，`answer_terms` 应覆盖“未提供该细节”的判断，而不是要求模型编造缺失细节。
+- 对复杂推理、纠错、禁止编造等语义要求，不应继续把所有要求塞进 `answer_terms`；应写入 `evaluation_requirements`，由可选 LLM judge 逐条判断。
 
 ## 各类问题的标注约定
 
@@ -143,7 +146,8 @@ eval/datasets/golden.documents.json
 
 - JSON 对象的 key 就是 evidence group 中填写的 `doc_key`。
 - `source_path` 必填，表示从项目根目录出发到原始评测 PDF 的相对路径，或可直接读取的绝对路径。
-- `notes` 可选，用于记录论文简称、版本或人工备注。
+- 
+otes` 可选，用于记录论文简称、版本或人工备注。
 - 每个 `doc_key` 都必须能在映射表中找到。
 - 评测 runner 应从 `source_path` 所在目录构建或复用评测索引，不依赖 Web 上传后的运行时文件名。
 
@@ -154,11 +158,28 @@ eval/datasets/golden.documents.json
 - 文档匹配：runner 先把 `evidence[].doc_key` 解析成 `source_path`，再按 `source_path` 或 basename 判断 retrieval / citation 是否命中。
 - 页码匹配：按每个 evidence group 的闭区间 overlap 判断。
 - 证据 term 匹配：按每个 evidence group 的 `terms` 判断检索文本是否覆盖关键锚点。
-- 答案 term 匹配：按顶层 `answer_terms` 判断最终答案或拒答文本是否覆盖关键锚点。
+- 答案 term 匹配：按顶层 `answer_terms` 判断最终答案或拒答文本是否覆盖关键锚点；这是轻量词面 smoke check，不等价于完整答案质量评估。
+- Judge 语义评估：启用 `paper-rag eval --judge` 时，只对配置了 `evaluation_requirements` 的样本调用 LLM judge，逐条判断要求是否满足，并单独汇总到 `summary.judge`。
 - 检索命中率：只把 `direct_answer`、`corrective_answer`、`insufficient_detail` 纳入 hit@k 分母。
 - 回答成功率：只把 `direct_answer`、`corrective_answer`、`insufficient_detail` 纳入 answer/citation/answer_terms 综合判断。
 - 拒答成功率：只把 `out_of_scope_refusal` 纳入 refusal 指标。
 
+
+## Evaluation Requirements 与 LLM Judge
+
+`evaluation_requirements` 用来表达“预期答案应该做到什么”，适合承载 `answer_terms` 难以可靠表达的语义要求：
+
+- 是否指出问题前提有误。
+- 是否说明论文实际给出的处理流程或边界。
+- 是否避免编造论文没有说明的原因、算法名或实现细节。
+- 是否引用指定文档和页码附近的证据。
+
+`answer_terms` 与 `evaluation_requirements` 的职责边界：
+
+- `answer_terms` 是确定性、低成本的词面 smoke check，适合数字、术语、拒答锚点和少量关键短语。
+- `evaluation_requirements` 是可选 judge 输入，适合复杂语义判断，不直接改变第一版 `answer_success_rate`。
+- 未开启 `--judge` 时，评测继续使用 retrieval/citation/refusal/answer_terms 的既有确定性口径。
+- 开启 `--judge` 时，report `schema_version` 为 3，新增 `summary.judge` 和 `cases[].judge_metrics`；原 `answer_metrics` 保留不删除。
 ## JSON Schema
 
 机器可读 schema 位于：
@@ -168,3 +189,5 @@ eval/schemas/eval_case.schema.json
 ```
 
 后续 dataset parser 应使用同一套规则校验每个 JSONL 对象，并额外做跨行校验，例如重复 `id` 检查。
+
+

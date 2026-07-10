@@ -1,0 +1,260 @@
+{
+  "schema_version": 3,
+  "dataset": {
+    "path": "D:\\ProgramData\\PythonProject\\paper_rag\\eval\\datasets\\golden.jsonl",
+    "documents_path": "D:\\ProgramData\\PythonProject\\paper_rag\\eval\\datasets\\golden.documents.json",
+    "case_count": 1
+  },
+  "run": {
+    "source_dir": "D:\\ProgramData\\PythonProject\\paper_rag\\eval\\papers",
+    "index_dir": "D:\\ProgramData\\PythonProject\\paper_rag\\.paper_rag\\api_index",
+    "tenant_id": "eval",
+    "top_k": 3,
+    "rag_config": {
+      "reader": {
+        "id": "pdf_reader",
+        "source": null,
+        "model": null,
+        "parameters": {
+          "recursive": true
+        }
+      },
+      "chunker": {
+        "id": "token_window_chunker",
+        "source": null,
+        "model": null,
+        "parameters": {
+          "chunk_size": 800,
+          "chunk_overlap": 120,
+          "encoding_name": "cl100k_base"
+        }
+      },
+      "embedder": {
+        "id": "openai_embedder",
+        "source": "siliconflow",
+        "model": "Qwen/Qwen3-Embedding-4B",
+        "parameters": {}
+      },
+      "retriever": {
+        "id": "vector_retriever",
+        "source": null,
+        "model": null,
+        "parameters": {
+          "top_k": 3
+        }
+      },
+      "generator": {
+        "id": "openai_generator",
+        "source": "siliconflow",
+        "model": "deepseek-ai/DeepSeek-V4-Pro",
+        "parameters": {
+          "min_score": 0.05,
+          "prompt_version": "answer_v3_corrective_boundary"
+        }
+      }
+    },
+    "judge": {
+      "enabled": true,
+      "source": "siliconflow",
+      "model": "deepseek-ai/DeepSeek-V4-Pro",
+      "prompt_version": "judge_v1_requirements",
+      "mode": "judge_only",
+      "input_report_path": "eval\\experiments\\judge_golden_009_report.json"
+    },
+    "index": {
+      "status": "ready",
+      "document_count": 2,
+      "chunk_count": 117,
+      "indexed_chunk_count": 0
+    }
+  },
+  "summary": {
+    "case_count": 1,
+    "error_count": 0,
+    "retrieval": {
+      "top_k": 3,
+      "answerable_case_count": 1,
+      "answerable_hit_count": 1,
+      "retrieval_hit_rate": 1.0,
+      "missed_case_ids": [],
+      "unanswerable_case_count": 0
+    },
+    "answer": {
+      "case_count": 1,
+      "success_count": 0,
+      "success_rate": 0.0,
+      "answer_terms_case_count": 1,
+      "answer_terms_hit_count": 0,
+      "answer_terms_hit_rate": 0.0
+    },
+    "citation": {
+      "case_count": 1,
+      "hit_count": 1,
+      "hit_rate": 1.0
+    },
+    "refusal": {
+      "case_count": 0,
+      "success_count": 0,
+      "success_rate": 0.0
+    },
+    "judge": {
+      "enabled": true,
+      "case_count": 1,
+      "passed_count": 0,
+      "pass_rate": 0.0,
+      "average_score": 0.8,
+      "error_count": 0,
+      "failed_case_ids": [
+        "golden_009"
+      ]
+    },
+    "failed_case_ids": {
+      "retrieval": [],
+      "answer": [
+        "golden_009"
+      ],
+      "judge": [
+        "golden_009"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "golden_009",
+      "question": "作者为什么要将ScanNet++的单帧画面合成为30fps的视频？",
+      "answerable": true,
+      "expectation": "corrective_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "29cadfc92a634d5ba803cfbd",
+        "cd28d3c408024ef378fa5816"
+      ],
+      "used_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "29cadfc92a634d5ba803cfbd",
+        "cd28d3c408024ef378fa5816"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.13]",
+        "[think in space.pdf, p.9]",
+        "[SIBE-LM.pdf, p.20]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "问题前提不成立：根据提供的证据，ScanNet++ 本身是视频数据，而非单帧画面。论文中描述的处理方式是“subsampling ScanNet++ and ARKitScenes videos to 30 FPS”（将 ScanNet++ 和 ARKitScenes 的视频下采样到 30 FPS），而不是将单帧合成为视频 [think in space.pdf, p.13]。证据中并未说明为何选择 30 FPS 这一具体帧率，仅提及了该处理步骤。",
+      "retrieval_metrics": {
+        "case_id": "golden_009",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 13,
+            "page_end": 13,
+            "expected_terms": [
+              "individual frames",
+              "24 FPS",
+              "subsampling ScanNet++",
+              "30 FPS"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "e5e5b4ceeabe6828ded3a1da"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_009",
+        "answerable": true,
+        "expectation": "corrective_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 13,
+            "page_end": 13,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.13]"
+            ],
+            "matched_chunk_ids": [
+              "e5e5b4ceeabe6828ded3a1da"
+            ]
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "24 FPS"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "缺少答案词 24 FPS"
+        ]
+      },
+      "judge_metrics": {
+        "case_id": "golden_009",
+        "expectation": "corrective_answer",
+        "passed": false,
+        "score": 0.8,
+        "requirement_results": [
+          {
+            "requirement": "指出问题前提有误：论文不是把 ScanNet++ 单帧画面合成为 30 FPS 视频。",
+            "passed": true,
+            "reason": "答案明确指出问题前提不成立，并说明 ScanNet++ 是视频数据，处理是下采样而非合成。"
+          },
+          {
+            "requirement": "说明论文实际处理：ScanNet 的 individual frames 被转换为 24 FPS 连续视频。",
+            "passed": false,
+            "reason": "答案未提及 ScanNet 数据集的处理方式，遗漏了将独立帧转换为 24 FPS 视频这一关键信息。"
+          },
+          {
+            "requirement": "说明 ScanNet++ 和 ARKitScenes 是被 subsampling 到 30 FPS。",
+            "passed": true,
+            "reason": "答案明确引用了 subsampling 到 30 FPS 的处理方式。"
+          },
+          {
+            "requirement": "不得编造作者为什么选择 30 FPS 的原因。",
+            "passed": true,
+            "reason": "答案声明证据未说明选择 30 FPS 的原因，没有编造。"
+          },
+          {
+            "requirement": "答案应引用 think_in_space 第 13 页的相关证据。",
+            "passed": true,
+            "reason": "答案引用了 [think in space.pdf, p.13]。"
+          }
+        ],
+        "hallucination_risk": "low",
+        "overall_reason": "答案正确纠正了问题前提，并说明了 ScanNet++ 和 ARKitScenes 的下采样处理，但遗漏了 ScanNet 数据集从独立帧转换为 24 FPS 视频的重要信息，导致回答不完整。",
+        "error": null
+      },
+      "failures": {
+        "retrieval": [],
+        "answer": [
+          "缺少答案词 24 FPS"
+        ],
+        "judge": [
+          "答案正确纠正了问题前提，并说明了 ScanNet++ 和 ARKitScenes 的下采样处理，但遗漏了 ScanNet 数据集从独立帧转换为 24 FPS 视频的重要信息，导致回答不完整。"
+        ]
+      }
+    }
+  ]
+}

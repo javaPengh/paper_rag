@@ -24,6 +24,8 @@ def test_load_eval_dataset_parses_project_golden_dataset() -> None:
     assert cases_by_id["golden_005"].expectation == "insufficient_detail"
     assert cases_by_id["golden_005"].answerable is True
     assert cases_by_id["golden_009"].expectation == "corrective_answer"
+    assert cases_by_id["golden_005"].evaluation_requirements
+    assert cases_by_id["golden_009"].evaluation_requirements
     assert dataset.documents["SIBE-LM"].source_path == Path("eval/papers/SIBE-LM.pdf")
 
 

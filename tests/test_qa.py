@@ -6,6 +6,7 @@
 from pathlib import Path
 
 from paper_rag.qa import ExtractiveAnswerGenerator, format_answer
+from paper_rag.qa.prompts import ANSWER_PROMPT_VERSION, build_answer_system_prompt
 from paper_rag.schemas import Chunk, Document, SearchResult
 
 
@@ -66,3 +67,16 @@ def test_extractive_answer_reports_insufficient_evidence() -> None:
     assert answer.insufficient_evidence
     assert "不足以回答" in answer.answer
     assert answer.citations == []
+
+
+def test_answer_prompt_records_corrective_boundary() -> None:
+    """确认 prompt 的纠错边界。"""
+    prompt = build_answer_system_prompt()
+    corrective_prefix = "问题前提不成立"
+
+    assert ANSWER_PROMPT_VERSION == "answer_v4_corrective_mapping"
+    assert corrective_prefix in prompt
+    assert "do not use the exact refusal sentence" in prompt
+    assert "false premise" in prompt
+    assert "entity-action-number mappings" in prompt
+

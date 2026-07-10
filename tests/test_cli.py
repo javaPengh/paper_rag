@@ -61,7 +61,10 @@ def test_cli_requires_external_model_config_for_ask(tmp_path: Path) -> None:
     )
 
     assert result.exit_code != 0
-    assert "缺少 embedding 模型来源" in result.output or "Build the index before retrieval." in result.output
+    assert (
+        "缺少 embedding 模型来源" in result.output
+        or "Build the index before retrieval." in result.output
+    )
 
 
 def _write_test_pdf(path: Path, text: str = TEST_PDF_TEXT) -> Path:

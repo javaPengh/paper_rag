@@ -14,7 +14,6 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from paper_rag.exceptions import EvaluationDatasetError
 
-
 EvalExpectation = Literal[
     "direct_answer",
     "corrective_answer",
@@ -142,6 +141,10 @@ class EvalCase(BaseModel):
         min_length=1,
         description="期望出现在最终答案或有依据拒答文本中的关键词或短语。",
     )
+    evaluation_requirements: list[str] = Field(
+        default_factory=list,
+        description="可选的语义评估要求，用于 LLM judge 判断答案是否满足预期回答点。",
+    )
     reference_answer: str = Field(
         default="",
         description="可选的人工参考答案，用于人工复核或后续引入 answer quality 指标。",
@@ -185,6 +188,12 @@ class EvalCase(BaseModel):
                     "answer_terms slash-separated alternatives must not be empty"
                 )
         return terms
+
+    @field_validator("evaluation_requirements")
+    @classmethod
+    def validate_evaluation_requirements(cls, value: list[str]) -> list[str]:
+        """规整语义评估要求，避免空白要求进入 judge 提示词。"""
+        return [item.strip() for item in value if item.strip()]
 
     @model_validator(mode="after")
     def validate_answerable_contract(self) -> Self:

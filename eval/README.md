@@ -45,6 +45,7 @@
     }
   ],
   "answer_terms": ["答案应覆盖的关键词"],
+  "evaluation_requirements": ["可选：预期答案应满足的语义要求"],
   "reference_answer": "可选的人工参考答案",
   "notes": "人工审核备注"
 }
@@ -60,10 +61,12 @@
 - `evidence[].doc_key`：证据所在文档短键，必须存在于 `golden.documents.json`。
 - `evidence[].page_start` / `page_end`：证据页码范围，使用从 1 开始的闭区间。
 - `evidence[].terms`：期望出现在检索证据文本里的原文锚点词，用于判断是否真正命中证据。
-- `answer_terms`：期望出现在最终答案或拒答文本里的关键词。
+- `answer_terms`：期望出现在最终答案或拒答文本里的关键词；现在定位为轻量词面 smoke check。
+- `evaluation_requirements`：可选的语义评估要求，启用 `--judge` 时由 LLM judge 逐条判断复杂答案质量。
 - `answer_terms`：多个词条之间是 AND 关系；单个词条内可以用 `/` 表示 OR 备选，例如 `下降/没有提升`。
 - `reference_answer`：人工参考答案，当前主要用于人工复核，后续可扩展 answer quality 指标。
-- `notes`：人工标注备注，不参与自动评分。
+- 
+otes`：人工标注备注，不参与自动评分。
 
 审核原则：
 
@@ -72,6 +75,7 @@
 - `evidence[].terms` 应选择能定位原文的短词或短语，不要填过长段落。
 - `answer_terms` 应选择判断答案是否覆盖核心信息所需的关键词，不要要求完整复述。
 - `answer_terms` 应选择判断答案是否覆盖核心信息所需的关键词，不要要求完整复述；需要表达同义备选时可用 `/` 分隔。
+- 复杂纠错、禁止编造、边界说明等要求应写入 `evaluation_requirements`，不要继续用词项堆叠模拟语义评估。
 - 跨文档问题应在 `evidence` 中写多组证据，每组证据分别填写自己的 `doc_key` 和页码。
 
 ## 运行评测
@@ -145,8 +149,10 @@ report 用于后续回归对比、人工审核和脚本分析。
 - `summary.answer`：可回答问题的答案成功指标，以及 `answer_terms` 覆盖情况。
 - `summary.citation`：可回答问题的 citation 是否命中人工 evidence 文档和页码。
 - `summary.refusal`：不可回答问题是否正确拒答。
+- `summary.judge`：启用 `--judge` 后的语义评估汇总；未启用时 `enabled` 为 `false`。
 - `summary.failed_case_ids.retrieval`：检索未命中的可回答 case ID。
 - `summary.failed_case_ids.answer`：answer、citation 或 refusal 未通过的 case ID。
+- `summary.failed_case_ids.judge`：judge 未通过或 judge 出错的 case ID。
 
 `summary.retrieval` 常用字段：
 
@@ -204,8 +210,10 @@ report 用于后续回归对比、人工审核和脚本分析。
 - `answer_text`：生成答案文本。
 - `retrieval_metrics`：检索命中明细。
 - `answer_metrics`：答案、引用和拒答明细。
+- `judge_metrics`：启用 `--judge` 且该 case 配置了 `evaluation_requirements` 时的语义评估明细。
 - `failures.retrieval`：检索失败原因，是人工排查检索问题时最重要的字段。
 - `failures.answer`：答案、引用或拒答失败原因，是人工排查生成问题时最重要的字段。
+- `failures.judge`：judge 未通过或 judge 输出解析失败的原因。
 
 ## 可复现验收命令
 
@@ -227,3 +235,81 @@ paper-rag eval eval\datasets\golden.jsonl `
 pytest
 ruff check src tests scripts
 ```
+
+## 单题或少量样本快速评估
+
+调 prompt、`min_score` 或答案词时，可以先只跑一个或几个 case，避免每次都调用全量外部 API。`--case-id` 可以重复传入；省略该参数时仍运行全量评测。
+
+```powershell
+paper-rag eval eval\datasets\golden.jsonl `
+  --case-id golden_009 `
+  --source-dir eval\papers `
+  --index-dir .paper_rag\api_index `
+  --tenant-id eval `
+  --embedding-source siliconflow `
+  --embedding-model Qwen/Qwen3-Embedding-4B `
+  --chat-source siliconflow `
+  --chat-model deepseek-ai/DeepSeek-V4-Pro `
+  --top-k 3 `
+  --chunk-size 800 `
+  --chunk-overlap 120 `
+  --min-score 0.05 `
+  --report-json eval\experiments\prompt_v3_golden_009_report.json
+```
+
+少量样本示例：
+
+```powershell
+paper-rag eval eval\datasets\golden.jsonl `
+  --case-id golden_005 `
+  --case-id golden_009 `
+  --source-dir eval\papers `
+  --index-dir .paper_rag\api_index `
+  --tenant-id eval
+```
+
+## 可选 LLM Judge 语义评估
+
+`--judge` 用于补充确定性指标无法覆盖的复杂答案质量判断。它默认复用本次 `--chat-source` / `--chat-model` 对应的对话模型，并在 JSON report 中记录 `run.judge.source`、`run.judge.model` 和 `run.judge.prompt_version`。
+
+```powershell
+paper-rag eval eval\datasets\golden.jsonl `
+  --case-id golden_009 `
+  --judge `
+  --source-dir eval\papers `
+  --index-dir .paper_rag\api_index `
+  --tenant-id eval `
+  --embedding-source siliconflow `
+  --embedding-model Qwen/Qwen3-Embedding-4B `
+  --chat-source siliconflow `
+  --chat-model deepseek-ai/DeepSeek-V4-Pro `
+  --report-json eval\experiments\judge_golden_009_report.json
+```
+
+当前 judge 只是并行指标，不会替代 `answer_success_rate`：
+
+- 未传 `--judge` 时，报告仍按既有 retrieval/citation/refusal/answer_terms 口径计算。
+- 传入 `--judge` 时，只评估配置了 `evaluation_requirements` 的 case。
+- judge 输出写入 `summary.judge` 和 `cases[].judge_metrics`，用于人工判断 `answer_terms` 未命中但语义实际正确的情况。
+- 如果 judge 输出不是合法 JSON、缺字段或分数越界，会记录为该 case 的 judge error，不影响 retrieval/answer 指标。
+
+## 只对已有 Report 运行 Judge
+
+如果只想验证 judge 对某次历史答案的判断，而不想重新执行 embedding、retrieval 或答案生成，可以使用 `eval-judge`。它会读取已有 JSON report 的 `cases[].answer_text`，再回到 golden dataset 查找对应 case 的 `evaluation_requirements`，只调用一次 judge 模型。
+
+```powershell
+paper-rag eval-judge eval\experiments\prompt_v4_golden_009_report.json `
+  --dataset eval\datasets\golden.jsonl `
+  --case-id golden_009 `
+  --chat-source siliconflow `
+  --chat-model deepseek-ai/DeepSeek-V4-Pro `
+  --report-json eval\experiments\judge_only_golden_009_report.json
+```
+
+`eval-judge` 与 `eval --judge` 的区别：
+
+- `eval --judge` 会重新运行完整链路：检索、答案生成、确定性指标和 judge，因此会同时受到当前答案 prompt、模型随机性和检索结果影响。
+- `eval-judge` 不重新生成答案，只 judge 输入 report 中已经存在的答案，适合隔离分析“judge 是否判得合理”。
+- `--case-id` 可以重复传入；省略时会处理输入 report 中所有 case，但只有配置了 `evaluation_requirements` 的 case 会实际进入 judge 汇总。
+- 输出 report 会保留原有 retrieval/answer/citation 指标，并把本次 judge 结果写入 `summary.judge`、`cases[].judge_metrics` 和 `run.judge.mode = "judge_only"`。
+

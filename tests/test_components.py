@@ -16,6 +16,7 @@ from paper_rag.config import Settings
 from paper_rag.domain import Chunk, Document, SearchResult
 from paper_rag.indexing import LocalPaperIndex
 from paper_rag.indexing.chunking import ChunkingConfig, chunk_pages
+from paper_rag.qa.prompts import ANSWER_PROMPT_VERSION
 
 
 def test_component_registry_lists_five_component_kinds() -> None:
@@ -140,6 +141,7 @@ def test_generator_components_keep_existing_answer_protocol() -> None:
     assert extractive_answer.model_name == "extractive-local-v1"
     assert extractive_answer.citations
     assert openai_answer.model_name == "fake-chat-model"
+    assert OpenAIGenerator(chat_client=_FakeChatClient()).prompt_version == ANSWER_PROMPT_VERSION
     assert openai_answer.citations
 
 
@@ -164,6 +166,27 @@ def test_openai_generator_only_treats_exact_standard_refusal_as_insufficient() -
     assert answer.insufficient_evidence is False
     assert answer.citations
     assert answer.evidence_chunk_ids == ["chunk1"]
+
+
+def test_pipeline_config_records_answer_prompt_version() -> None:
+    """确认配置快照记录 prompt 版本。"""
+    registry = get_component_registry(
+        Settings(
+            embedding_source="siliconflow",
+            embedding_model="Qwen/Qwen3-Embedding-4B",
+            chat_source="siliconflow",
+            llm_model="deepseek-ai/DeepSeek-V4-Pro",
+        )
+    )
+
+    config = registry.build_pipeline_config(
+        embedding_source="siliconflow",
+        embedding_model="Qwen/Qwen3-Embedding-4B",
+        chat_source="siliconflow",
+        llm_model="deepseek-ai/DeepSeek-V4-Pro",
+    )
+
+    assert config.generator.parameters["prompt_version"] == ANSWER_PROMPT_VERSION
 
 
 def test_pdf_reader_and_token_window_chunker_match_existing_functions(tmp_path: Path) -> None:
@@ -222,7 +245,10 @@ class _DetailMissingChatClient:
         """模拟模型用证据说明细节未提供，而不是标准拒答。"""
         assert system_prompt
         assert user_prompt
-        return "论文不足以回答具体算法名称，但说明了 Paper RAG indexes local PDF papers. [paper.pdf, p.1]"
+        return (
+            "论文不足以回答具体算法名称，但说明了 "
+            "Paper RAG indexes local PDF papers. [paper.pdf, p.1]"
+        )
 
 
 def _document() -> Document:

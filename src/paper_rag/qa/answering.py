@@ -8,9 +8,11 @@ from typing import Protocol
 
 from paper_rag.domain import Answer, Citation, SearchResult
 from paper_rag.exceptions import AnswerGenerationError
-
-# 本地和 LLM 驱动的答案生成器共用的标准拒答文本。
-INSUFFICIENT_ANSWER = "不足以回答：当前检索到的证据不足以支持可靠答案。"
+from paper_rag.qa.prompts import (
+    ANSWER_PROMPT_VERSION,
+    INSUFFICIENT_ANSWER,
+    build_answer_system_prompt,
+)
 
 
 class ChatClient(Protocol):
@@ -83,6 +85,10 @@ class OpenAIAnswerGenerator:
         default=0.05,
         metadata={"description": "允许证据进入提示词的最低检索分数。"},
     )
+    prompt_version: str = field(
+        default=ANSWER_PROMPT_VERSION,
+        metadata={"description": "答案生成系统提示词版本。"},
+    )
 
     def generate(self, question: str, results: Sequence[SearchResult]) -> Answer:
         """根据检索到的证据生成一个有依据的答案，或者返回拒答。"""
@@ -93,7 +99,7 @@ class OpenAIAnswerGenerator:
             return insufficient_answer(question, self.chat_client.model_name, context=context)
 
         raw_answer = self.chat_client.complete(
-            system_prompt=build_system_prompt(),
+            system_prompt=build_answer_system_prompt(),
             user_prompt=build_user_prompt(question, context),
         )
         insufficient = raw_answer.strip() == INSUFFICIENT_ANSWER
@@ -164,18 +170,7 @@ class ExtractiveAnswerGenerator:
 
 def build_system_prompt() -> str:
     """创建用于 LLM 答案生成的依据约束说明。"""
-    return (
-        "You answer questions using only the provided evidence. "
-        "If no provided evidence is relevant to the question, answer exactly in Chinese: "
-        f"{INSUFFICIENT_ANSWER} "
-        "If the evidence contradicts the question premise, do not refuse; "
-        "explain that the premise is wrong, give the corrected facts, and cite evidence. "
-        "If the evidence is relevant but lacks a requested detail, do not invent it; "
-        "state that the paper does not provide that detail, summarize what it does say, "
-        "and cite evidence. "
-        "When answering, include source citations in the form [file.pdf, p.1] "
-        "or [file.pdf, pp.1-2]. Do not cite sources that are not in the evidence."
-    )
+    return build_answer_system_prompt()
 
 
 def build_user_prompt(question: str, context: str) -> str:

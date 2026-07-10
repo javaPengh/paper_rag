@@ -29,6 +29,7 @@ from paper_rag.config import ApiModelSourceConfig, Settings, load_settings
 from paper_rag.indexing.chunking import ChunkingConfig
 from paper_rag.indexing.local_index import LocalPaperIndex
 from paper_rag.qa.answering import OpenAIChatClient
+from paper_rag.qa.prompts import ANSWER_PROMPT_VERSION
 
 DEFAULT_READER_ID = "pdf_reader"
 DEFAULT_CHUNKER_ID = "token_window_chunker"
@@ -39,6 +40,7 @@ DEFAULT_EXTRACTIVE_GENERATOR_ID = "extractive_generator"
 DEFAULT_OPENAI_GENERATOR_ID = "openai_generator"
 DEFAULT_HASH_EMBEDDING_MODEL = "hash-embedding-v1"
 DEFAULT_EXTRACTIVE_MODEL = "extractive-local-v1"
+LOCAL_MODEL_SOURCE_ID = "local"
 
 
 class ComponentRegistry:
@@ -339,7 +341,7 @@ class ComponentRegistry:
                 id=generator_id,
                 source=selected_chat_source,
                 model=generator_model,
-                parameters={"min_score": min_score},
+                parameters={"min_score": min_score, "prompt_version": ANSWER_PROMPT_VERSION},
             ),
         )
 

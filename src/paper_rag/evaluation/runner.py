@@ -24,6 +24,14 @@ from paper_rag.evaluation.answer_metrics import (
     summarize_answer_metrics,
 )
 from paper_rag.evaluation.dataset import EvalCase, EvalDataset, load_eval_dataset
+from paper_rag.evaluation.judge import (
+    JudgeCaseMetrics,
+    JudgeClient,
+    JudgeMetricSummary,
+    evaluate_judge_case,
+    summarize_judge_metrics,
+)
+from paper_rag.evaluation.prompts import JUDGE_PROMPT_VERSION
 from paper_rag.evaluation.retrieval_metrics import (
     RetrievalCaseMetrics,
     RetrievalMetricSummary,
@@ -41,6 +49,17 @@ class AnswerGenerator(Protocol):
         """根据一个问题和检索结果生成答案。"""
         ...
 
+
+class EvalJudgeConfig(BaseModel):
+    """一次评测运行中的可选 LLM judge 配置。"""
+
+    enabled: bool = Field(default=False, description="本次评测是否启用 LLM judge。")
+    source: str | None = Field(default=None, description="judge 使用的对话模型来源。")
+    model: str | None = Field(default=None, description="judge 使用的对话模型名称。")
+    prompt_version: str = Field(
+        default=JUDGE_PROMPT_VERSION,
+        description="judge 提示词版本，用于追踪语义评估口径。",
+    )
 
 class EvalRunConfig(BaseModel):
     """一次评测运行的输入配置。"""
@@ -85,6 +104,16 @@ class EvalRunConfig(BaseModel):
         description="本次评测显式记录的 Reader/Chunker/Embedder/Retriever/Generator 配置。",
     )
 
+    case_ids: list[str] = Field(
+        default_factory=list,
+        description="仅评测指定 case ID；为空表示运行全量数据集。",
+    )
+
+    judge_config: EvalJudgeConfig = Field(
+        default_factory=EvalJudgeConfig,
+        description="本次评测可选的 LLM judge 配置。",
+    )
+
 
 class EvalCaseRunResult(BaseModel):
     """单条 eval case 的实际运行结果。"""
@@ -121,6 +150,10 @@ class EvalCaseRunResult(BaseModel):
         default=None,
         description="该 case 的 answer、citation 和 refusal 指标明细。",
     )
+    judge_metrics: JudgeCaseMetrics | None = Field(
+        default=None,
+        description="该 case 的可选 LLM judge 语义评估明细。",
+    )
     error: str | None = Field(
         default=None,
         description="该 case 在检索或答案生成阶段发生的可预期错误。",
@@ -149,6 +182,12 @@ class EvalRunResult(BaseModel):
     answer_summary: AnswerMetricSummary = Field(
         description="本次运行的 answer、citation 和 refusal 指标汇总。",
     )
+    judge_summary: JudgeMetricSummary = Field(
+        description="本次运行的可选 LLM judge 指标汇总。",
+    )
+    judge_config: EvalJudgeConfig = Field(
+        description="本次运行实际使用的 LLM judge 配置。",
+    )
     rag_config: RagPipelineConfig = Field(
         description="本次运行实际使用的 RAG 组件配置快照。",
     )
@@ -173,6 +212,7 @@ def run_evaluation(
     *,
     embedding_client: EmbeddingClient,
     answer_generator: AnswerGenerator,
+    judge_client: JudgeClient | None = None,
 ) -> EvalRunResult:
     """执行一次 MVP 评测运行。
 
@@ -182,6 +222,7 @@ def run_evaluation(
     project_root = config.project_root or Path.cwd()
     dataset_path = _resolve_path(config.dataset_path, project_root)
     dataset = load_eval_dataset(dataset_path, project_root=project_root)
+    dataset = _filter_eval_dataset_cases(dataset, config.case_ids)
     source_dir = _resolve_source_dir(dataset, config.source_dir)
     index_dir = _resolve_path(config.index_dir, project_root)
     registry = get_component_registry()
@@ -190,6 +231,8 @@ def run_evaluation(
         embedding_client=embedding_client,
         answer_generator=answer_generator,
     )
+    if config.judge_config.enabled and judge_client is None:
+        raise ValueError("启用 --judge 时必须提供 judge client。")
     reader = registry.create_reader(
         rag_config.reader.id,
         parameters=rag_config.reader.parameters,
@@ -228,6 +271,7 @@ def run_evaluation(
             config=config,
             retriever=retriever,
             answer_generator=answer_generator,
+            judge_client=judge_client if config.judge_config.enabled else None,
         )
         for case in dataset.cases
     ]
@@ -246,6 +290,14 @@ def run_evaluation(
             if case_result.answer_metrics is not None
         ]
     )
+    judge_summary = summarize_judge_metrics(
+        [
+            case_result.judge_metrics
+            for case_result in case_results
+            if case_result.judge_metrics is not None
+        ],
+        enabled=config.judge_config.enabled,
+    )
 
     return EvalRunResult(
         dataset=dataset,
@@ -256,10 +308,26 @@ def run_evaluation(
         index_result=index_result,
         retrieval_summary=retrieval_summary,
         answer_summary=answer_summary,
+        judge_summary=judge_summary,
+        judge_config=config.judge_config,
         rag_config=rag_config,
         case_results=case_results,
     )
 
+
+
+def _filter_eval_dataset_cases(dataset: EvalDataset, case_ids: list[str]) -> EvalDataset:
+    """根据 case ID 过滤评测集，保持输入顺序。"""
+    if not case_ids:
+        return dataset
+    unique_case_ids = list(dict.fromkeys(case_ids))
+    cases_by_id = {case.id: case for case in dataset.cases}
+    missing_case_ids = [case_id for case_id in unique_case_ids if case_id not in cases_by_id]
+    if missing_case_ids:
+        raise EvaluationDatasetError("评测集中不存在指定 case ID: " + ", ".join(missing_case_ids))
+    return dataset.model_copy(
+        update={"cases": [cases_by_id[case_id] for case_id in unique_case_ids]}
+    )
 
 def format_eval_run_result(result: EvalRunResult) -> str:
     """把 MVP 评测运行结果渲染成 CLI 可读文本。"""
@@ -309,6 +377,20 @@ def format_eval_run_result(result: EvalRunResult) -> str:
         "",
         "未命中检索样本:",
     ]
+    if result.judge_summary.enabled:
+        lines.insert(
+            -2,
+            (
+                f"Judge 通过率: {result.judge_summary.passed_count}/"
+                f"{result.judge_summary.case_count} "
+                f"({result.judge_summary.pass_rate:.2%}), "
+                f"平均分={result.judge_summary.average_score:.2f}, "
+                f"错误数={result.judge_summary.error_count}"
+            ),
+        )
+    else:
+        lines.insert(-2, "Judge: disabled")
+
     if result.retrieval_summary.missed_case_ids:
         case_results_by_id = {
             case_result.case_id: case_result for case_result in result.case_results
@@ -415,7 +497,7 @@ def _infer_rag_config(
                 id="extractive_generator",
                 source=generator_source or "local",
                 model=generator_model,
-                parameters={"min_score": _answer_generator_min_score(answer_generator)},
+                parameters=_answer_generator_parameters(answer_generator),
             ),
         )
     return registry.build_pipeline_config(
@@ -457,6 +539,15 @@ def _answer_generator_min_score(answer_generator: AnswerGenerator) -> float:
     return float(min_score)
 
 
+def _answer_generator_parameters(answer_generator: AnswerGenerator) -> dict[str, object]:
+    """读取答案生成器参数，供评测报告踪踪实验变量。"""
+    parameters: dict[str, object] = {"min_score": _answer_generator_min_score(answer_generator)}
+    prompt_version = getattr(answer_generator, "prompt_version", None)
+    if isinstance(prompt_version, str) and prompt_version:
+        parameters["prompt_version"] = prompt_version
+    return parameters
+
+
 def _run_case(
     *,
     case: EvalCase,
@@ -464,6 +555,7 @@ def _run_case(
     config: EvalRunConfig,
     retriever: Retriever,
     answer_generator: AnswerGenerator,
+    judge_client: JudgeClient | None,
 ) -> EvalCaseRunResult:
     """执行单个 case，并把可预期错误保留为 case-level 结果。"""
     try:
@@ -488,6 +580,11 @@ def _run_case(
             expectation=case.expectation,
             retrieval_metrics=retrieval_metrics,
             answer_metrics=answer_metrics,
+            judge_metrics=(
+                evaluate_judge_case(case=case, answer=None, judge_client=judge_client)
+                if judge_client
+                else None
+            ),
             error=str(exc),
         )
 
@@ -514,6 +611,11 @@ def _run_case(
             retrieved_chunk_ids=[result.chunk.id for result in results],
             retrieval_metrics=retrieval_metrics,
             answer_metrics=answer_metrics,
+            judge_metrics=(
+                evaluate_judge_case(case=case, answer=None, judge_client=judge_client)
+                if judge_client
+                else None
+            ),
             error=str(exc),
         )
 
@@ -535,6 +637,11 @@ def _run_case(
         used_chunk_ids=answer.evidence_chunk_ids,
         retrieval_metrics=retrieval_metrics,
         answer_metrics=answer_metrics,
+        judge_metrics=(
+            evaluate_judge_case(case=case, answer=answer, judge_client=judge_client)
+            if judge_client
+            else None
+        ),
     )
 
 
@@ -574,3 +681,4 @@ def _resolve_path(path: Path, project_root: Path) -> Path:
     """把相对路径解析到 project_root 下，绝对路径保持不变。"""
     resolved = Path(path)
     return resolved if resolved.is_absolute() else project_root / resolved
+
