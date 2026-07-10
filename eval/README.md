@@ -9,6 +9,7 @@
 - `papers/`：固定评测 PDF 语料。评测集中的 `source_path` 应指向这里的文件。
 - `datasets/golden.documents.json`：文档短键映射表，用短键连接 eval case 和真实 PDF。
 - `datasets/golden.jsonl`：人工维护的 golden dataset，每行是一条 eval case。
+- `experiments/`：可留档的实验结果目录，包含当前主基线、历史基线、JSON report 和人工 metrics 摘要；产出规则见 `experiments/README.md`。
 - `.paper_rag/eval_index/`：运行评测时生成或复用的本地索引目录，不纳入版本管理。
 - `.paper_rag/reports/`：建议保存 JSON report 的运行目录，不纳入版本管理。
 
@@ -65,8 +66,7 @@
 - `evaluation_requirements`：可选的语义评估要求，启用 `--judge` 时由 LLM judge 逐条判断复杂答案质量。
 - `answer_terms`：多个词条之间是 AND 关系；单个词条内可以用 `/` 表示 OR 备选，例如 `下降/没有提升`。
 - `reference_answer`：人工参考答案，当前主要用于人工复核，后续可扩展 answer quality 指标。
-- 
-otes`：人工标注备注，不参与自动评分。
+- `notes`：人工标注备注，不参与自动评分。
 
 审核原则：
 
@@ -218,6 +218,8 @@ report 用于后续回归对比、人工审核和脚本分析。
 ## 可复现验收命令
 
 评测功能完成后，可以用以下命令复现当前基线：
+
+当前实验结果的默认对比基线、命名规则和 metrics 摘要要求见 `eval/experiments/README.md`。继续优化 RAG 链路时，默认应和 `baseline_v3_prompt_*` 做同口径对比；`baseline_v2_expectation_*` 是上一版同口径提示词基线，旧 `baseline_82d8d25_*` 只作为历史参考。
 
 ```powershell
 conda activate paper_rag

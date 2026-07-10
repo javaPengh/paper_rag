@@ -134,3 +134,12 @@ golden dataset 的可信度依赖人工阅读论文后确认问题、证据页�
 
 ### 计划差异与原因
 原评测基础设计将 `answerable` 作为可答与不可答的主边界。实际评估后发现，该二分类无法表达“证据相关但问题前提错误”与“证据相关但缺少所问细节”这两类高价值样本，因此改为保留 `answerable` 作为兼容字段，并用 `expectation` 表达真实评测目标。
+
+## 2026-07-10 - 引入语义评估要求与 LLM Judge
+
+### 变更内容
+- 引入语义评估要求：golden dataset 新增 `evaluation_requirements` 字段，用来描述答案应该满足的语义点，不再只依赖 `answer_terms` 这种关键词匹配。
+- 新增 LLM Judge 评估：增加 judge 模块，让模型逐条判断答案是否满足 `evaluation_requirements`，并输出 `score`、逐条原因、幻觉风险等结构化结果。
+
+### 关键原因
+复杂答案质量不能完全靠关键词判断，尤其是纠错题、细节缺失题和禁止编造这类语义要求。`evaluation_requirements` 用人工可读的方式表达预期答案要点，LLM Judge 则作为并行诊断指标，帮助解释答案到底缺了哪个语义点。
