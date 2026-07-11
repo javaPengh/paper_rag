@@ -6,12 +6,15 @@ import json
 import os
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from paper_rag.cli import app
+from paper_rag.components.retrieval import EnglishQueryTranslator
 from paper_rag.embeddings import HashEmbeddingClient
 from paper_rag.evaluation import (
     EvalJudgeConfig,
+    EvalQueryTranslationConfig,
     EvalRunConfig,
     JudgeOnlyConfig,
     build_eval_json_report,
@@ -60,6 +63,19 @@ class _FakeJudgeClient:
                 "overall_reason": "The answer satisfies the requirement.",
             }
         )
+
+
+class _FakeTranslationClient:
+    """为评测查询翻译返回固定英文文本的聊天客户端替身。"""
+
+    model_name = "fake-answer-model"
+    source_name = "fake"
+
+    def complete(self, *, system_prompt: str, user_prompt: str) -> str:
+        """返回与测试语料匹配的英文检索问题。"""
+        assert "Translate" in system_prompt
+        assert "Original question" in user_prompt
+        return "What does Paper RAG index?"
 
 
 def test_run_evaluation_keeps_rag_config_for_legacy_local_components(tmp_path: Path) -> None:
@@ -144,6 +160,60 @@ def test_run_evaluation_records_judge_metrics_and_report(tmp_path: Path) -> None
     assert report["run"]["judge"]["source"] == "fake"
     assert report["summary"]["judge"]["passed_count"] == 1
     assert report["cases"][0]["judge_metrics"]["passed"] is True
+
+
+def test_run_evaluation_records_query_translation_configuration_and_query(tmp_path: Path) -> None:
+    """启用翻译时，报告应保留模型、提示词版本和实际检索问题。"""
+    source_dir, dataset_path, index_dir = _write_eval_fixture(tmp_path)
+    translator = EnglishQueryTranslator(_FakeTranslationClient())
+
+    result = run_evaluation(
+        EvalRunConfig(
+            dataset_path=dataset_path,
+            source_dir=source_dir,
+            index_dir=index_dir,
+            tenant_id="eval_test",
+            top_k=2,
+            chunk_size=120,
+            chunk_overlap=20,
+            case_ids=["case_answerable"],
+            query_translation_config=EvalQueryTranslationConfig(
+                enabled=True,
+                source=translator.source_name,
+                model=translator.model_name,
+                prompt_version=translator.prompt_version,
+            ),
+        ),
+        embedding_client=HashEmbeddingClient(),
+        answer_generator=ExtractiveAnswerGenerator(),
+        query_translator=translator,
+    )
+
+    report = build_eval_json_report(result)
+
+    assert result.case_results[0].question == "What does Paper RAG index?"
+    assert result.case_results[0].retrieval_question == "What does Paper RAG index?"
+    assert report["run"]["query_translation"]["enabled"] is True
+    assert report["run"]["query_translation"]["model"] == "fake-answer-model"
+    assert report["cases"][0]["retrieval_question"] == "What does Paper RAG index?"
+
+
+def test_run_evaluation_requires_translator_when_translation_is_enabled(tmp_path: Path) -> None:
+    """确认启用翻译但缺少翻译器时直接失败，不会改用原始问题检索。"""
+    source_dir, dataset_path, index_dir = _write_eval_fixture(tmp_path)
+
+    with pytest.raises(ValueError, match="必须提供查询翻译器"):
+        run_evaluation(
+            EvalRunConfig(
+                dataset_path=dataset_path,
+                source_dir=source_dir,
+                index_dir=index_dir,
+                tenant_id="eval_test",
+                query_translation_config=EvalQueryTranslationConfig(enabled=True),
+            ),
+            embedding_client=HashEmbeddingClient(),
+            answer_generator=ExtractiveAnswerGenerator(),
+        )
 
 
 def test_run_judge_only_uses_existing_report_answer(tmp_path: Path) -> None:

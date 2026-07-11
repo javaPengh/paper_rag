@@ -33,6 +33,10 @@ class RetrievalError(PaperRagError):
     """检索阶段无法产出可用证据时抛出的异常。"""
 
 
+class QueryTranslationError(PaperRagError):
+    """检索前查询翻译失败或返回非法结果时抛出的异常。"""
+
+
 class AnswerGenerationError(PaperRagError):
     """答案生成阶段失败时抛出的异常。"""
 

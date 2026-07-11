@@ -32,6 +32,7 @@ def build_eval_json_report(result: EvalRunResult) -> dict[str, Any]:
             "top_k": result.top_k,
             "rag_config": result.rag_config.model_dump(mode="json"),
             "judge": result.judge_config.model_dump(mode="json"),
+            "query_translation": result.query_translation_config.model_dump(mode="json"),
             "index": {
                 "status": result.index_result.status.status,
                 "document_count": result.index_result.status.document_count,
@@ -89,6 +90,7 @@ def _case_report(case_result: EvalCaseRunResult) -> dict[str, Any]:
     return {
         "id": case_result.case_id,
         "question": case_result.question,
+        "retrieval_question": case_result.retrieval_question,
         "answerable": case_result.answerable,
         "expectation": case_result.expectation,
         "status": "error" if case_result.error else "ok",

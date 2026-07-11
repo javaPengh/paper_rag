@@ -195,10 +195,17 @@ report 用于后续回归对比、人工审核和脚本分析。
 - `generator.id` / `generator.source` / `generator.model`：答案生成使用的组件、来源与模型。
 - `generator.parameters.min_score`：证据进入答案生成前的最低检索分数。
 
+`run.query_translation` 仅在检索前英文查询翻译策略启用时记录：
+
+- `enabled`：本次是否将原始问题翻译为英文后再检索。
+- `source` / `model`：翻译复用的答案生成聊天模型来源和模型名。
+- `prompt_version`：英文查询翻译提示词版本。
+
 `cases[]` 常用字段：
 
 - `id`：case ID。
 - `question`：评测问题。
+- `retrieval_question`：实际传给 Retriever 的问题；未启用翻译时与 `question` 相同。
 - `answerable`：人工标注是否可回答。
 - `status`：运行状态，`ok` 表示流程完成，`error` 表示流程出错。
 - `retrieval_state`：`hit`、`miss`、`diagnostic` 或 `unknown`。

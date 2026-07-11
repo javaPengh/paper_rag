@@ -15,6 +15,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from paper_rag.components import ComponentSelection, RagPipelineConfig, get_component_registry
 from paper_rag.components.interfaces import Retriever
+from paper_rag.components.retrieval.query_translation import (
+    EnglishQueryTranslator,
+    retrieve_for_question,
+)
 from paper_rag.domain import Answer, IndexBuildResult, SearchResult
 from paper_rag.embeddings import EmbeddingClient
 from paper_rag.evaluation.answer_metrics import (
@@ -31,7 +35,6 @@ from paper_rag.evaluation.judge import (
     evaluate_judge_case,
     summarize_judge_metrics,
 )
-from paper_rag.prompts.judge import JUDGE_PROMPT_VERSION
 from paper_rag.evaluation.retrieval_metrics import (
     RetrievalCaseMetrics,
     RetrievalMetricSummary,
@@ -40,6 +43,8 @@ from paper_rag.evaluation.retrieval_metrics import (
 )
 from paper_rag.exceptions import EvaluationDatasetError, PaperRagError
 from paper_rag.indexing import ChunkingConfig, LocalPaperIndex, build_index_from_directory
+from paper_rag.prompts.judge import JUDGE_PROMPT_VERSION
+from paper_rag.prompts.translation import QUERY_TRANSLATION_PROMPT_VERSION
 
 
 class AnswerGenerator(Protocol):
@@ -60,6 +65,19 @@ class EvalJudgeConfig(BaseModel):
         default=JUDGE_PROMPT_VERSION,
         description="judge 提示词版本，用于追踪语义评估口径。",
     )
+
+
+class EvalQueryTranslationConfig(BaseModel):
+    """一次评测运行中的可选英文查询翻译配置。"""
+
+    enabled: bool = Field(default=False, description="本次评测是否在检索前翻译问题。")
+    source: str | None = Field(default=None, description="翻译复用的答案生成模型来源。")
+    model: str | None = Field(default=None, description="翻译复用的答案生成模型名称。")
+    prompt_version: str = Field(
+        default=QUERY_TRANSLATION_PROMPT_VERSION,
+        description="英文查询翻译提示词版本，用于追踪检索实验变量。",
+    )
+
 
 class EvalRunConfig(BaseModel):
     """一次评测运行的输入配置。"""
@@ -113,13 +131,18 @@ class EvalRunConfig(BaseModel):
         default_factory=EvalJudgeConfig,
         description="本次评测可选的 LLM judge 配置。",
     )
+    query_translation_config: EvalQueryTranslationConfig = Field(
+        default_factory=EvalQueryTranslationConfig,
+        description="本次评测可选的英文查询翻译配置。",
+    )
 
 
 class EvalCaseRunResult(BaseModel):
     """单条 eval case 的实际运行结果。"""
 
     case_id: str = Field(description="对应 golden dataset 中的稳定 case ID。")
-    question: str = Field(description="实际提交给 RAG 链路的问题。")
+    question: str = Field(description="原始提交给 RAG 链路与答案生成器的问题。")
+    retrieval_question: str = Field(description="实际提交给 Retriever 的问题。")
     answerable: bool = Field(description="人工标注中该问题是否应当生成带引用答案。")
     expectation: str = Field(description="该样本在 golden dataset 中声明的评测期望类型。")
     retrieved_chunk_ids: list[str] = Field(
@@ -188,6 +211,9 @@ class EvalRunResult(BaseModel):
     judge_config: EvalJudgeConfig = Field(
         description="本次运行实际使用的 LLM judge 配置。",
     )
+    query_translation_config: EvalQueryTranslationConfig = Field(
+        description="本次运行实际使用的英文查询翻译配置。",
+    )
     rag_config: RagPipelineConfig = Field(
         description="本次运行实际使用的 RAG 组件配置快照。",
     )
@@ -213,6 +239,7 @@ def run_evaluation(
     embedding_client: EmbeddingClient,
     answer_generator: AnswerGenerator,
     judge_client: JudgeClient | None = None,
+    query_translator: EnglishQueryTranslator | None = None,
 ) -> EvalRunResult:
     """执行一次 MVP 评测运行。
 
@@ -233,6 +260,8 @@ def run_evaluation(
     )
     if config.judge_config.enabled and judge_client is None:
         raise ValueError("启用 --judge 时必须提供 judge client。")
+    if config.query_translation_config.enabled and query_translator is None:
+        raise ValueError("启用英文查询翻译时必须提供查询翻译器。")
     reader = registry.create_reader(
         rag_config.reader.id,
         parameters=rag_config.reader.parameters,
@@ -272,6 +301,9 @@ def run_evaluation(
             retriever=retriever,
             answer_generator=answer_generator,
             judge_client=judge_client if config.judge_config.enabled else None,
+            query_translator=(
+                query_translator if config.query_translation_config.enabled else None
+            ),
         )
         for case in dataset.cases
     ]
@@ -310,6 +342,7 @@ def run_evaluation(
         answer_summary=answer_summary,
         judge_summary=judge_summary,
         judge_config=config.judge_config,
+        query_translation_config=config.query_translation_config,
         rag_config=rag_config,
         case_results=case_results,
     )
@@ -556,10 +589,19 @@ def _run_case(
     retriever: Retriever,
     answer_generator: AnswerGenerator,
     judge_client: JudgeClient | None,
+    query_translator: EnglishQueryTranslator | None,
 ) -> EvalCaseRunResult:
     """执行单个 case，并把可预期错误保留为 case-level 结果。"""
+    retrieval_question = case.question
     try:
-        results = retriever.retrieve(case.question, top_k=config.top_k)
+        query_retrieval = retrieve_for_question(
+            question=case.question,
+            retriever=retriever,
+            top_k=config.top_k,
+            query_translator=query_translator,
+        )
+        retrieval_question = query_retrieval.translation.retrieval_question
+        results = query_retrieval.results
     except (PaperRagError, ValueError) as exc:
         retrieval_metrics = evaluate_retrieval_case(
             dataset=dataset,
@@ -576,6 +618,7 @@ def _run_case(
         return EvalCaseRunResult(
             case_id=case.id,
             question=case.question,
+            retrieval_question=retrieval_question,
             answerable=case.answerable,
             expectation=case.expectation,
             retrieval_metrics=retrieval_metrics,
@@ -606,6 +649,7 @@ def _run_case(
         return EvalCaseRunResult(
             case_id=case.id,
             question=case.question,
+            retrieval_question=retrieval_question,
             answerable=case.answerable,
             expectation=case.expectation,
             retrieved_chunk_ids=[result.chunk.id for result in results],
@@ -628,6 +672,7 @@ def _run_case(
     return EvalCaseRunResult(
         case_id=case.id,
         question=case.question,
+        retrieval_question=retrieval_question,
         answerable=case.answerable,
         expectation=case.expectation,
         retrieved_chunk_ids=[result.chunk.id for result in results],

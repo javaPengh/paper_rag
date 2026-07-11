@@ -319,6 +319,10 @@ class AskRequest(BaseModel):
     """本地 Inspector 的问题请求。"""
 
     question: str = Field(min_length=1, description="要回答的自然语言问题。")
+    translate_query: bool = Field(
+        default=False,
+        description="是否仅在检索前将原始问题翻译为英文。",
+    )
     tenant_id: str = Field(default="default", description="要查询的租户/工作区命名空间。")
     index_dir: Path | None = Field(
         default=None,

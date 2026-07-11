@@ -8,10 +8,12 @@ import typer
 from paper_rag import __version__
 from paper_rag.components import ComponentRegistry, get_component_registry
 from paper_rag.components.interfaces import Embedder, Generator
+from paper_rag.components.retrieval import build_query_translator, retrieve_for_question
 from paper_rag.config import load_settings
 from paper_rag.domain import Document
 from paper_rag.evaluation import (
     EvalJudgeConfig,
+    EvalQueryTranslationConfig,
     EvalRunConfig,
     JudgeOnlyConfig,
     format_eval_run_result,
@@ -197,6 +199,10 @@ def ask(
         float,
         typer.Option("--min-score", min=0.0, help="Minimum retrieval score for usable evidence."),
     ] = 0.05,
+    translate_query: Annotated[
+        bool,
+        typer.Option("--translate-query/--no-translate-query", help="检索前是否将问题翻译为英文。"),
+    ] = False,
 ) -> None:
     """向现有本地索引提问。"""
 
@@ -224,14 +230,19 @@ def ask(
             parameters={"top_k": effective_top_k},
         )
 
-        results = retriever.retrieve(question, top_k=effective_top_k)
-
-        answer = _make_answer_generator(
+        answer_generator = _make_answer_generator(
             chat_source=chat_source,
             llm_model=llm_model or settings.llm_model,
             min_score=min_score,
             registry=registry,
-        ).generate(question, results)
+        )
+        query_retrieval = retrieve_for_question(
+            question=question,
+            retriever=retriever,
+            top_k=effective_top_k,
+            query_translator=build_query_translator(answer_generator) if translate_query else None,
+        )
+        answer = answer_generator.generate(question, query_retrieval.results)
 
     except (PaperRagError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
@@ -303,6 +314,10 @@ def eval_command(
         bool,
         typer.Option("--judge/--no-judge", help="是否启用 LLM judge 语义评估。"),
     ] = False,
+    translate_query: Annotated[
+        bool,
+        typer.Option("--translate-query/--no-translate-query", help="检索前是否将问题翻译为英文。"),
+    ] = False,
     min_score: Annotated[
         float,
         typer.Option("--min-score", min=0.0, help="可用证据的最低检索分数。"),
@@ -348,6 +363,7 @@ def eval_command(
         )
 
         judge_client = _make_judge_client(answer_generator=answer_generator) if judge else None
+        query_translator = build_query_translator(answer_generator) if translate_query else None
 
         result = run_evaluation(
             EvalRunConfig(
@@ -365,10 +381,16 @@ def eval_command(
                     source=chat_source or settings.chat_source,
                     model=llm_model or settings.llm_model,
                 ),
+                query_translation_config=EvalQueryTranslationConfig(
+                    enabled=translate_query,
+                    source=query_translator.source_name if query_translator else None,
+                    model=query_translator.model_name if query_translator else None,
+                ),
             ),
             embedding_client=embedding_client,
             answer_generator=answer_generator,
             judge_client=judge_client,
+            query_translator=query_translator,
         )
 
     except (PaperRagError, ValueError) as exc:

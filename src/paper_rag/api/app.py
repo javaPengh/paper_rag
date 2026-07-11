@@ -35,6 +35,7 @@ from paper_rag.api.schemas import (
 )
 from paper_rag.components import ComponentRegistry, get_component_registry
 from paper_rag.components.interfaces import Embedder, Generator
+from paper_rag.components.retrieval import build_query_translator, retrieve_for_question
 from paper_rag.components.types import ComponentDescriptor, ComponentKind
 from paper_rag.config import load_settings
 from paper_rag.domain import (
@@ -243,16 +244,22 @@ def create_app() -> FastAPI:
                     "top_k": request.top_k if request.top_k is not None else settings.top_k
                 },
             )
-            results = retriever.retrieve(
-                request.question,
-                top_k=request.top_k if request.top_k is not None else settings.top_k,
-            )
-            answer = _make_answer_generator(
+            answer_generator = _make_answer_generator(
                 chat_source=request.chat_source,
                 llm_model=request.chat_model or request.llm_model or settings.llm_model,
                 min_score=request.min_score,
                 registry=registry,
-            ).generate(request.question, results)
+            )
+            query_retrieval = retrieve_for_question(
+                question=request.question,
+                retriever=retriever,
+                top_k=request.top_k if request.top_k is not None else settings.top_k,
+                query_translator=(
+                    build_query_translator(answer_generator) if request.translate_query else None
+                ),
+            )
+            results = query_retrieval.results
+            answer = answer_generator.generate(request.question, results)
         except (PaperRagError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
