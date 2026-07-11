@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from paper_rag.domain import Answer
 from paper_rag.evaluation.dataset import EvalCase
-from paper_rag.evaluation.prompts import build_judge_system_prompt
+from paper_rag.prompts.judge import build_judge_system_prompt, build_judge_user_prompt
 
 
 class JudgeClient(Protocol):
@@ -69,27 +69,6 @@ class JudgeMetricSummary(BaseModel):
         default_factory=list,
         description="judge 未通过或出错的 case ID。",
     )
-
-
-def build_judge_user_prompt(
-    *,
-    case: EvalCase,
-    answer_text: str,
-    citation_labels: list[str],
-    insufficient_evidence: bool,
-) -> str:
-    """把单条 case、答案文本和评估要求组装成 judge 用户提示词。"""
-    payload = {
-        "case_id": case.id,
-        "question": case.question,
-        "expectation": case.expectation,
-        "reference_answer": case.reference_answer,
-        "evaluation_requirements": case.evaluation_requirements,
-        "answer_text": answer_text,
-        "citation_labels": citation_labels,
-        "insufficient_evidence": insufficient_evidence,
-    }
-    return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
 def parse_judge_response(case: EvalCase, raw_response: str) -> JudgeCaseMetrics:
@@ -149,7 +128,11 @@ def evaluate_judge_answer_text(
         raw_response = judge_client.complete(
             system_prompt=build_judge_system_prompt(),
             user_prompt=build_judge_user_prompt(
-                case=case,
+                case_id=case.id,
+                question=case.question,
+                expectation=case.expectation,
+                reference_answer=case.reference_answer,
+                evaluation_requirements=case.evaluation_requirements,
                 answer_text=answer_text,
                 citation_labels=citation_labels,
                 insufficient_evidence=insufficient_evidence,

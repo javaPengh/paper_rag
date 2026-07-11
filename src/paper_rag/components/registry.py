@@ -29,7 +29,7 @@ from paper_rag.config import ApiModelSourceConfig, Settings, load_settings
 from paper_rag.indexing.chunking import ChunkingConfig
 from paper_rag.indexing.local_index import LocalPaperIndex
 from paper_rag.qa.answering import OpenAIChatClient
-from paper_rag.qa.prompts import ANSWER_PROMPT_VERSION
+from paper_rag.prompts.answer import ANSWER_PROMPT_VERSION
 
 DEFAULT_READER_ID = "pdf_reader"
 DEFAULT_CHUNKER_ID = "token_window_chunker"

@@ -17,7 +17,11 @@ from paper_rag.evaluation.judge import (
     parse_judge_response,
     summarize_judge_metrics,
 )
-from paper_rag.evaluation.prompts import JUDGE_PROMPT_VERSION, build_judge_system_prompt
+from paper_rag.prompts.judge import (
+    JUDGE_PROMPT_VERSION,
+    build_judge_system_prompt,
+    build_judge_user_prompt,
+)
 from paper_rag.schemas import Answer, Citation
 
 
@@ -65,13 +69,30 @@ def test_parse_judge_response_accepts_valid_json() -> None:
 
 
 
-def test_judge_prompt_is_versioned_in_evaluation_prompts() -> None:
-    """确认 judge 提示词由 evaluation.prompts 统一管理。"""
+def test_judge_prompt_is_versioned_in_prompt_package() -> None:
+    """确认 Judge 提示词由统一的 prompts 包管理。"""
     prompt = build_judge_system_prompt()
 
     assert JUDGE_PROMPT_VERSION == "judge_v1_requirements"
     assert "Return only valid JSON" in prompt
     assert "evaluation judge" in prompt
+
+
+def test_judge_user_prompt_is_centrally_managed() -> None:
+    """确认 Judge 用户提示词由 prompts 包统一构造。"""
+    prompt = build_judge_user_prompt(
+        case_id="case_001",
+        question="问题",
+        expectation="direct_answer",
+        reference_answer="参考答案",
+        evaluation_requirements=["回答问题"],
+        answer_text="模型答案",
+        citation_labels=["[paper.pdf, p.1]"],
+        insufficient_evidence=False,
+    )
+
+    assert '"case_id": "case_001"' in prompt
+    assert '"answer_text": "模型答案"' in prompt
 def test_parse_judge_response_accepts_fenced_json() -> None:
     """部分模型会误加代码块围栏，解析器应去掉围栏后再校验 JSON。"""
     case = _case()

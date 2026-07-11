@@ -16,7 +16,7 @@ from paper_rag.config import Settings
 from paper_rag.domain import Chunk, Document, SearchResult
 from paper_rag.indexing import LocalPaperIndex
 from paper_rag.indexing.chunking import ChunkingConfig, chunk_pages
-from paper_rag.qa.prompts import ANSWER_PROMPT_VERSION
+from paper_rag.prompts.answer import ANSWER_PROMPT_VERSION
 
 
 def test_component_registry_lists_five_component_kinds() -> None:

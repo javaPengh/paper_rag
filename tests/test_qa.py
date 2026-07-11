@@ -6,7 +6,11 @@
 from pathlib import Path
 
 from paper_rag.qa import ExtractiveAnswerGenerator, format_answer
-from paper_rag.qa.prompts import ANSWER_PROMPT_VERSION, build_answer_system_prompt
+from paper_rag.prompts.answer import (
+    ANSWER_PROMPT_VERSION,
+    build_answer_system_prompt,
+    build_answer_user_prompt,
+)
 from paper_rag.schemas import Chunk, Document, SearchResult
 
 
@@ -79,4 +83,11 @@ def test_answer_prompt_records_corrective_boundary() -> None:
     assert "do not use the exact refusal sentence" in prompt
     assert "false premise" in prompt
     assert "entity-action-number mappings" in prompt
+
+
+def test_answer_user_prompt_is_centrally_managed() -> None:
+    """确认答案用户提示词由 prompts 包统一构造。"""
+    prompt = build_answer_user_prompt("问题", "证据")
+
+    assert prompt == "Question:\n问题\n\nEvidence:\n证据\n\nAnswer:"
 
