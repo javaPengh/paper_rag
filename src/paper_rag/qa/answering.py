@@ -8,10 +8,11 @@ from typing import Protocol
 
 from paper_rag.domain import Answer, Citation, SearchResult
 from paper_rag.exceptions import AnswerGenerationError
-from paper_rag.qa.prompts import (
+from paper_rag.prompts.answer import (
     ANSWER_PROMPT_VERSION,
     INSUFFICIENT_ANSWER,
     build_answer_system_prompt,
+    build_answer_user_prompt,
 )
 
 
@@ -100,7 +101,7 @@ class OpenAIAnswerGenerator:
 
         raw_answer = self.chat_client.complete(
             system_prompt=build_answer_system_prompt(),
-            user_prompt=build_user_prompt(question, context),
+            user_prompt=build_answer_user_prompt(question, context),
         )
         insufficient = raw_answer.strip() == INSUFFICIENT_ANSWER
         if insufficient:
@@ -166,16 +167,6 @@ class ExtractiveAnswerGenerator:
             insufficient_evidence=False,
             context=context,
         )
-
-
-def build_system_prompt() -> str:
-    """创建用于 LLM 答案生成的依据约束说明。"""
-    return build_answer_system_prompt()
-
-
-def build_user_prompt(question: str, context: str) -> str:
-    """把用户问题和证据上下文合并成一个模型提示词。"""
-    return f"Question:\n{question}\n\nEvidence:\n{context}\n\nAnswer:"
 
 
 def build_answer_context(results: Sequence[SearchResult]) -> str:

@@ -1,8 +1,7 @@
-"""问答生成提示词集中定义。
+"""答案生成提示词。
 
-本模块把会影响评测结果和企业回答边界的提示词集中管理。后续修改 prompt 时，
-需要同步提升版本号，并通过评测报告记录版本，避免把 prompt 改动和检索、切分、
-模型等其他实验变量混在一起。
+本模块集中维护答案生成器使用的提示词和标准拒答文本。修改提示词时必须同步更新
+版本标识，使评测报告能够区分提示词改动与检索、切分或模型配置改动。
 """
 
 from __future__ import annotations
@@ -48,3 +47,8 @@ def build_answer_system_prompt() -> str:
         "[file.pdf, p.1] or [file.pdf, pp.1-2]. Do not cite sources that are "
         "not in the evidence."
     )
+
+
+def build_answer_user_prompt(question: str, context: str) -> str:
+    """将用户问题和检索证据组装为答案生成用户提示词。"""
+    return f"Question:\n{question}\n\nEvidence:\n{context}\n\nAnswer:"
