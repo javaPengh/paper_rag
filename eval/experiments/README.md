@@ -9,7 +9,6 @@
 - JSON report：`eval/experiments/baseline_v3_prompt_report.json`
 - 人工摘要：`eval/experiments/baseline_v3_prompt_metrics.md`
 
-`baseline_v2_expectation_*` 是上一版同口径提示词基线，可以用于分析 v3 的收益来源，但新实验默认应优先和 v3 对比。`baseline_82d8d25_*` 是旧 `answerable` 二分类口径的历史基线，只能作为历史参考，不能和 v3 prompt 口径做严格收益对比。
 
 `.paper_rag/reports/api_index.json` 是早期 API 索引运行记录，指标口径和当前 v3 基线不同。它可用于排查历史问题，但不作为当前优化的默认对照基线。
 
@@ -61,7 +60,7 @@ v3 评测语义以 `expectation` 为准：
 `*_metrics.md` 至少包含以下部分：
 
 - 实验目的：本次改动验证什么假设，影响检索、证据命中、答案生成、引用还是拒答。
-- 对比基线：默认写 `baseline_v2_expectation_*`；如果不是同口径对比，必须说明原因。
+- 对比基线：默认写 `baseline_3_expectation_*`；如果不是同口径对比，必须说明原因。
 - 运行配置：dataset、documents、source_dir、index_dir、tenant_id、top_k、reader、chunker、embedder、retriever、generator、模型来源、模型名、`min_score`、索引状态。
 - 汇总指标：`case_count`、`error_count`、`retrieval_hit_rate`、`answer_success_rate`、`citation_hit_rate`、`refusal_success_rate`、`answer_terms_hit_rate`。
 - 失败样本：分别列出 retrieval 失败和 answer 失败的 case id。
