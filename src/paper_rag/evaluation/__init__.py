@@ -38,7 +38,6 @@ from paper_rag.evaluation.judge_report import (
     run_judge_only,
     write_judge_only_report,
 )
-from paper_rag.prompts.judge import JUDGE_PROMPT_VERSION, build_judge_system_prompt
 from paper_rag.evaluation.reporting import build_eval_json_report, write_eval_json_report
 from paper_rag.evaluation.retrieval_metrics import (
     RetrievalCaseMetrics,
@@ -55,6 +54,7 @@ from paper_rag.evaluation.runner import (
     format_eval_run_result,
     run_evaluation,
 )
+from paper_rag.prompts.judge import JUDGE_PROMPT_VERSION, build_judge_system_prompt
 
 __all__ = [
     "ANSWER_EXPECTATIONS",

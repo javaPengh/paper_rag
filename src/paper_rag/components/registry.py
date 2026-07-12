@@ -11,6 +11,9 @@ from paper_rag.components.generation.extractive_generator import ExtractiveGener
 from paper_rag.components.generation.openai_generator import OpenAIGenerator
 from paper_rag.components.interfaces import Chunker, Embedder, Generator, Reader, Retriever
 from paper_rag.components.reading.pdf_reader import PdfReader
+from paper_rag.components.retrieval.bm25_retriever import Bm25Retriever
+from paper_rag.components.retrieval.hybrid_retriever import HybridRetriever
+from paper_rag.components.retrieval.sparse_query import EnglishSparseQueryGenerator
 from paper_rag.components.retrieval.vector_retriever import VectorRetriever
 from paper_rag.components.types import (
     ComponentConfigField,
@@ -28,14 +31,16 @@ from paper_rag.components.types import (
 from paper_rag.config import ApiModelSourceConfig, Settings, load_settings
 from paper_rag.indexing.chunking import ChunkingConfig
 from paper_rag.indexing.local_index import LocalPaperIndex
-from paper_rag.qa.answering import OpenAIChatClient
 from paper_rag.prompts.answer import ANSWER_PROMPT_VERSION
+from paper_rag.qa.answering import OpenAIChatClient
 
 DEFAULT_READER_ID = "pdf_reader"
 DEFAULT_CHUNKER_ID = "token_window_chunker"
 DEFAULT_HASH_EMBEDDER_ID = "hash_embedder"
 DEFAULT_OPENAI_EMBEDDER_ID = "openai_embedder"
 DEFAULT_RETRIEVER_ID = "vector_retriever"
+DEFAULT_BM25_RETRIEVER_ID = "bm25_retriever"
+DEFAULT_HYBRID_RETRIEVER_ID = "hybrid_retriever"
 DEFAULT_EXTRACTIVE_GENERATOR_ID = "extractive_generator"
 DEFAULT_OPENAI_GENERATOR_ID = "openai_generator"
 DEFAULT_HASH_EMBEDDING_MODEL = "hash-embedding-v1"
@@ -227,16 +232,45 @@ class ComponentRegistry:
         local_index: LocalPaperIndex,
         embedding_client: Embedder,
         tenant_id: str = "default",
+        sparse_query_generator: EnglishSparseQueryGenerator | None = None,
         parameters: Mapping[str, ConfigValue] | None = None,
     ) -> Retriever:
         """创建 Retriever 组件，并绑定检索所需的索引和 embedding 组件。"""
-        _ = parameters
+        params = dict(parameters or {})
         self._ensure_kind(component_id, ComponentKind.RETRIEVER)
         if component_id == DEFAULT_RETRIEVER_ID:
             return VectorRetriever(
                 local_index=local_index,
                 embedding_client=embedding_client,
                 tenant_id=tenant_id,
+            )
+        if component_id == DEFAULT_BM25_RETRIEVER_ID:
+            return Bm25Retriever(
+                local_index=local_index,
+                tenant_id=tenant_id,
+                k1=float(params.get("k1", 1.5)),
+                b=float(params.get("b", 0.75)),
+            )
+        if component_id == DEFAULT_HYBRID_RETRIEVER_ID:
+            if sparse_query_generator is None:
+                raise ValueError("启用 Hybrid Retriever 时必须提供英文稀疏检索词生成器。")
+            vector_retriever = VectorRetriever(
+                local_index=local_index,
+                embedding_client=embedding_client,
+                tenant_id=tenant_id,
+            )
+            bm25_retriever = Bm25Retriever(
+                local_index=local_index,
+                tenant_id=tenant_id,
+                k1=float(params.get("bm25_k1", 1.5)),
+                b=float(params.get("bm25_b", 0.75)),
+            )
+            return HybridRetriever(
+                vector_retriever=vector_retriever,
+                bm25_retriever=bm25_retriever,
+                sparse_query_generator=sparse_query_generator,
+                candidate_top_k=int(params.get("candidate_top_k", 10)),
+                rrf_k=int(params.get("rrf_k", 60)),
             )
         raise ValueError(f"Unsupported Retriever component: {component_id}")
 
@@ -292,6 +326,9 @@ class ComponentRegistry:
         recursive: bool = True,
         top_k: int = 5,
         min_score: float = 0.05,
+        retriever_id: str = DEFAULT_RETRIEVER_ID,
+        candidate_top_k: int = 10,
+        rrf_k: int = 60,
     ) -> RagPipelineConfig:
         """构建可写入日志或评测报告的五类组件配置快照。"""
         selected_embedding_source = _required_config_value(
@@ -315,6 +352,17 @@ class ComponentRegistry:
             model_name=embedding_model,
         )
         generator_id = self.resolve_generator_id(source=selected_chat_source)
+        self._ensure_kind(retriever_id, ComponentKind.RETRIEVER)
+        retriever_parameters: dict[str, ConfigValue] = {"top_k": top_k}
+        if retriever_id == DEFAULT_HYBRID_RETRIEVER_ID:
+            retriever_parameters.update(
+                {
+                    "candidate_top_k": candidate_top_k,
+                    "rrf_k": rrf_k,
+                    "bm25_k1": 1.5,
+                    "bm25_b": 0.75,
+                }
+            )
         return RagPipelineConfig(
             reader=ComponentSelection(
                 id=DEFAULT_READER_ID,
@@ -334,8 +382,8 @@ class ComponentRegistry:
                 model=embedder_model,
             ),
             retriever=ComponentSelection(
-                id=DEFAULT_RETRIEVER_ID,
-                parameters={"top_k": top_k},
+                id=retriever_id,
+                parameters=retriever_parameters,
             ),
             generator=ComponentSelection(
                 id=generator_id,
@@ -483,6 +531,54 @@ def _build_descriptors(settings: Settings) -> dict[str, ComponentDescriptor]:
                     default=5,
                     minimum=1,
                 )
+            ],
+        ),
+        ComponentDescriptor(
+            id=DEFAULT_BM25_RETRIEVER_ID,
+            kind=ComponentKind.RETRIEVER,
+            label="BM25 Retriever",
+            description="基于现有英文 chunk 的确定性 BM25 词法检索组件。",
+            config_fields=[
+                ComponentConfigField(
+                    name="top_k",
+                    label="Top K",
+                    description="返回给调用方的词法检索结果数量。",
+                    field_type=ConfigFieldType.INTEGER,
+                    default=5,
+                    minimum=1,
+                )
+            ],
+        ),
+        ComponentDescriptor(
+            id=DEFAULT_HYBRID_RETRIEVER_ID,
+            kind=ComponentKind.RETRIEVER,
+            label="Hybrid Retriever",
+            description="融合原始问题向量检索与英文 BM25 候选，并以 RRF 返回最终 Top-k。",
+            config_fields=[
+                ComponentConfigField(
+                    name="top_k",
+                    label="最终 Top K",
+                    description="RRF 融合后实际返回给答案生成器的证据数量。",
+                    field_type=ConfigFieldType.INTEGER,
+                    default=5,
+                    minimum=1,
+                ),
+                ComponentConfigField(
+                    name="candidate_top_k",
+                    label="每路候选数",
+                    description="向量和 BM25 各自在 RRF 融合前召回的内部候选数量。",
+                    field_type=ConfigFieldType.INTEGER,
+                    default=10,
+                    minimum=1,
+                ),
+                ComponentConfigField(
+                    name="rrf_k",
+                    label="RRF 常量",
+                    description="RRF 分数公式中的平滑常量，影响不同排名候选之间的差距。",
+                    field_type=ConfigFieldType.INTEGER,
+                    default=60,
+                    minimum=1,
+                ),
             ],
         ),
         ComponentDescriptor(

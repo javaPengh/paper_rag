@@ -35,6 +35,7 @@ from paper_rag.api.schemas import (
 )
 from paper_rag.components import ComponentRegistry, get_component_registry
 from paper_rag.components.interfaces import Embedder, Generator
+from paper_rag.components.retrieval import build_sparse_query_generator
 from paper_rag.components.types import ComponentDescriptor, ComponentKind
 from paper_rag.config import load_settings
 from paper_rag.domain import (
@@ -235,24 +236,33 @@ def create_app() -> FastAPI:
                 embedding_model=request.embedding_model,
                 registry=registry,
             )
+            answer_generator = _make_answer_generator(
+                chat_source=request.chat_source,
+                llm_model=request.chat_model or request.llm_model or settings.llm_model,
+                min_score=request.min_score,
+                registry=registry,
+            )
+            sparse_query_generator = (
+                build_sparse_query_generator(answer_generator)
+                if request.retriever_id == "hybrid_retriever"
+                else None
+            )
             retriever = registry.create_retriever(
+                request.retriever_id,
                 local_index=local_index,
                 embedding_client=embedding_client,
                 tenant_id=request.tenant_id,
+                sparse_query_generator=sparse_query_generator,
                 parameters={
-                    "top_k": request.top_k if request.top_k is not None else settings.top_k
+                    "top_k": request.top_k if request.top_k is not None else settings.top_k,
+                    "candidate_top_k": request.candidate_top_k,
                 },
             )
             results = retriever.retrieve(
                 request.question,
                 top_k=request.top_k if request.top_k is not None else settings.top_k,
             )
-            answer = _make_answer_generator(
-                chat_source=request.chat_source,
-                llm_model=request.chat_model or request.llm_model or settings.llm_model,
-                min_score=request.min_score,
-                registry=registry,
-            ).generate(request.question, results)
+            answer = answer_generator.generate(request.question, results)
         except (PaperRagError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 

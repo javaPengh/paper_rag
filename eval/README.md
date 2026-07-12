@@ -192,6 +192,8 @@ report 用于后续回归对比、人工审核和脚本分析。
 - `chunker.parameters.chunk_overlap`：相邻 chunk 之间重复的 token 数。
 - `embedder.id` / `embedder.source` / `embedder.model`：文档和问题 embedding 使用的组件、来源与模型。
 - `retriever.id` / `retriever.parameters.top_k`：证据召回使用的组件与 Top-k。
+- `retriever.parameters.candidate_top_k` / `retriever.parameters.rrf_k`：Hybrid Retriever 两路内部候选数量与 RRF 常量。
+- `retriever.parameters.sparse_query_*`：Hybrid Retriever 自动生成英文 BM25 检索词时复用的模型来源、模型名和提示词版本。
 - `generator.id` / `generator.source` / `generator.model`：答案生成使用的组件、来源与模型。
 - `generator.parameters.min_score`：证据进入答案生成前的最低检索分数。
 
@@ -204,6 +206,7 @@ report 用于后续回归对比、人工审核和脚本分析。
 - `retrieval_state`：`hit`、`miss`、`diagnostic` 或 `unknown`。
 - `answer_state`：`pass`、`fail` 或 `unknown`。
 - `retrieved_chunk_ids`：检索返回的 chunk ID。
+- `retrieval_trace`：Hybrid Retriever 启用时的英文稀疏检索词、向量候选、BM25 候选与 RRF 融合候选。
 - `used_chunk_ids`：答案生成实际使用的 chunk ID。
 - `citation_labels`：答案返回的 citation 标签。
 - `insufficient_evidence`：答案生成器是否认为证据不足。

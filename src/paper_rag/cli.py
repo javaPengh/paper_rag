@@ -1,5 +1,6 @@
 """Paper RAG 学习项目的命令行界面。"""
 
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -8,6 +9,7 @@ import typer
 from paper_rag import __version__
 from paper_rag.components import ComponentRegistry, get_component_registry
 from paper_rag.components.interfaces import Embedder, Generator
+from paper_rag.components.retrieval import build_sparse_query_generator
 from paper_rag.config import load_settings
 from paper_rag.domain import Document
 from paper_rag.evaluation import (
@@ -193,6 +195,18 @@ def ask(
         int | None,
         typer.Option("--top-k", min=1, help="Number of evidence chunks to retrieve."),
     ] = None,
+    retriever_id: Annotated[
+        str,
+        typer.Option("--retriever", help="Retriever component ID."),
+    ] = "vector_retriever",
+    candidate_top_k: Annotated[
+        int,
+        typer.Option(
+            "--candidate-top-k",
+            min=1,
+            help="Hybrid internal candidate count per retriever.",
+        ),
+    ] = 10,
     min_score: Annotated[
         float,
         typer.Option("--min-score", min=0.0, help="Minimum retrieval score for usable evidence."),
@@ -217,21 +231,27 @@ def ask(
             registry=registry,
         )
 
-        retriever = registry.create_retriever(
-            local_index=local_index,
-            embedding_client=embedding_client,
-            tenant_id=tenant_id,
-            parameters={"top_k": effective_top_k},
-        )
-
-        results = retriever.retrieve(question, top_k=effective_top_k)
-
-        answer = _make_answer_generator(
+        answer_generator = _make_answer_generator(
             chat_source=chat_source,
             llm_model=llm_model or settings.llm_model,
             min_score=min_score,
             registry=registry,
-        ).generate(question, results)
+        )
+        sparse_query_generator = (
+            build_sparse_query_generator(answer_generator)
+            if retriever_id == "hybrid_retriever"
+            else None
+        )
+        retriever = registry.create_retriever(
+            retriever_id,
+            local_index=local_index,
+            embedding_client=embedding_client,
+            tenant_id=tenant_id,
+            sparse_query_generator=sparse_query_generator,
+            parameters={"top_k": effective_top_k, "candidate_top_k": candidate_top_k},
+        )
+        results = retriever.retrieve(question, top_k=effective_top_k)
+        answer = answer_generator.generate(question, results)
 
     except (PaperRagError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
@@ -268,6 +288,14 @@ def eval_command(
         int | None,
         typer.Option("--top-k", min=1, help="每条 case 检索的证据 chunk 数。"),
     ] = None,
+    retriever_id: Annotated[
+        str,
+        typer.Option("--retriever", help="使用的 Retriever 组件 ID。"),
+    ] = "vector_retriever",
+    candidate_top_k: Annotated[
+        int,
+        typer.Option("--candidate-top-k", min=1, help="Hybrid 每路内部候选数量。"),
+    ] = 10,
     chunk_size: Annotated[
         int,
         typer.Option("--chunk-size", min=1, help="chunk 的最大 token 数。"),
@@ -332,6 +360,8 @@ def eval_command(
             chunk_overlap=chunk_overlap,
             top_k=effective_top_k,
             min_score=min_score,
+            retriever_id=retriever_id,
+            candidate_top_k=candidate_top_k,
         )
 
         embedding_client = _make_embedding_client(
@@ -345,6 +375,11 @@ def eval_command(
             llm_model=llm_model or settings.llm_model,
             min_score=min_score,
             registry=registry,
+        )
+        sparse_query_generator = (
+            build_sparse_query_generator(answer_generator)
+            if retriever_id == "hybrid_retriever"
+            else None
         )
 
         judge_client = _make_judge_client(answer_generator=answer_generator) if judge else None
@@ -369,12 +404,13 @@ def eval_command(
             embedding_client=embedding_client,
             answer_generator=answer_generator,
             judge_client=judge_client,
+            sparse_query_generator=sparse_query_generator,
         )
 
     except (PaperRagError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
 
-    typer.echo(format_eval_run_result(result))
+    typer.echo(_console_safe_text(format_eval_run_result(result)))
 
     if report_json is not None:
         try:
@@ -618,6 +654,12 @@ def _format_judge_only_result(report: dict) -> str:
     else:
         lines.append("- 无")
     return "\n".join(lines)
+
+
+def _console_safe_text(value: str) -> str:
+    """替换当前 Windows 控制台编码无法输出的字符，避免报告写入前 CLI 中断。"""
+    encoding = sys.stdout.encoding or "utf-8"
+    return value.encode(encoding, errors="replace").decode(encoding)
 
 
 def _make_embedding_client(

@@ -329,6 +329,15 @@ class AskRequest(BaseModel):
         ge=1,
         description="答案生成前要检索的证据 chunk 数量。",
     )
+    retriever_id: str = Field(
+        default="vector_retriever",
+        description="本次请求显式使用的 Retriever 组件 ID。",
+    )
+    candidate_top_k: int = Field(
+        default=10,
+        ge=1,
+        description="Hybrid Retriever 的每路内部候选数量。",
+    )
     min_score: float = Field(
         default=0.05,
         ge=0,

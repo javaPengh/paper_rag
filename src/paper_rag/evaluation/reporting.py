@@ -96,6 +96,7 @@ def _case_report(case_result: EvalCaseRunResult) -> dict[str, Any]:
         "retrieval_state": _retrieval_state(case_result),
         "answer_state": _answer_state(case_result),
         "retrieved_chunk_ids": case_result.retrieved_chunk_ids,
+        "retrieval_trace": case_result.retrieval_trace,
         "used_chunk_ids": case_result.used_chunk_ids,
         "citation_labels": case_result.citation_labels,
         "insufficient_evidence": case_result.insufficient_evidence,

@@ -21,8 +21,8 @@ from paper_rag.evaluation.judge import (
     evaluate_judge_answer_text,
     summarize_judge_metrics,
 )
-from paper_rag.prompts.judge import JUDGE_PROMPT_VERSION
 from paper_rag.exceptions import EvaluationDatasetError
+from paper_rag.prompts.judge import JUDGE_PROMPT_VERSION
 
 
 class JudgeOnlyConfig(BaseModel):

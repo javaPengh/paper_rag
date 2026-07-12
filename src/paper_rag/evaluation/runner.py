@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from paper_rag.components import ComponentSelection, RagPipelineConfig, get_component_registry
 from paper_rag.components.interfaces import Retriever
+from paper_rag.components.retrieval.sparse_query import EnglishSparseQueryGenerator
 from paper_rag.domain import Answer, IndexBuildResult, SearchResult
 from paper_rag.embeddings import EmbeddingClient
 from paper_rag.evaluation.answer_metrics import (
@@ -31,7 +32,6 @@ from paper_rag.evaluation.judge import (
     evaluate_judge_case,
     summarize_judge_metrics,
 )
-from paper_rag.prompts.judge import JUDGE_PROMPT_VERSION
 from paper_rag.evaluation.retrieval_metrics import (
     RetrievalCaseMetrics,
     RetrievalMetricSummary,
@@ -40,6 +40,7 @@ from paper_rag.evaluation.retrieval_metrics import (
 )
 from paper_rag.exceptions import EvaluationDatasetError, PaperRagError
 from paper_rag.indexing import ChunkingConfig, LocalPaperIndex, build_index_from_directory
+from paper_rag.prompts.judge import JUDGE_PROMPT_VERSION
 
 
 class AnswerGenerator(Protocol):
@@ -125,6 +126,10 @@ class EvalCaseRunResult(BaseModel):
     retrieved_chunk_ids: list[str] = Field(
         default_factory=list,
         description="retrieval 阶段返回的 chunk ID，按排名顺序保存。",
+    )
+    retrieval_trace: dict[str, object] | None = Field(
+        default=None,
+        description="Hybrid 检索启用时记录的两路候选、英文稀疏检索词和 RRF 融合明细。",
     )
     answer_text: str = Field(
         default="",
@@ -213,6 +218,7 @@ def run_evaluation(
     embedding_client: EmbeddingClient,
     answer_generator: AnswerGenerator,
     judge_client: JudgeClient | None = None,
+    sparse_query_generator: EnglishSparseQueryGenerator | None = None,
 ) -> EvalRunResult:
     """执行一次 MVP 评测运行。
 
@@ -262,7 +268,13 @@ def run_evaluation(
         local_index=local_index,
         embedding_client=embedding_client,
         tenant_id=config.tenant_id,
+        sparse_query_generator=sparse_query_generator,
         parameters=rag_config.retriever.parameters,
+    )
+    rag_config = _record_hybrid_runtime_parameters(
+        rag_config=rag_config,
+        retriever=retriever,
+        sparse_query_generator=sparse_query_generator,
     )
     case_results = [
         _run_case(
@@ -558,8 +570,10 @@ def _run_case(
     judge_client: JudgeClient | None,
 ) -> EvalCaseRunResult:
     """执行单个 case，并把可预期错误保留为 case-level 结果。"""
+    retrieval_trace: dict[str, object] | None = None
     try:
         results = retriever.retrieve(case.question, top_k=config.top_k)
+        retrieval_trace = _retrieval_trace(retriever)
     except (PaperRagError, ValueError) as exc:
         retrieval_metrics = evaluate_retrieval_case(
             dataset=dataset,
@@ -578,6 +592,7 @@ def _run_case(
             question=case.question,
             answerable=case.answerable,
             expectation=case.expectation,
+            retrieval_trace=retrieval_trace,
             retrieval_metrics=retrieval_metrics,
             answer_metrics=answer_metrics,
             judge_metrics=(
@@ -609,6 +624,7 @@ def _run_case(
             answerable=case.answerable,
             expectation=case.expectation,
             retrieved_chunk_ids=[result.chunk.id for result in results],
+            retrieval_trace=retrieval_trace,
             retrieval_metrics=retrieval_metrics,
             answer_metrics=answer_metrics,
             judge_metrics=(
@@ -631,6 +647,7 @@ def _run_case(
         answerable=case.answerable,
         expectation=case.expectation,
         retrieved_chunk_ids=[result.chunk.id for result in results],
+        retrieval_trace=retrieval_trace,
         answer_text=answer.answer,
         insufficient_evidence=answer.insufficient_evidence,
         citation_labels=[citation.label for citation in answer.citations],
@@ -642,6 +659,35 @@ def _run_case(
             if judge_client
             else None
         ),
+    )
+
+
+def _retrieval_trace(retriever: Retriever) -> dict[str, object] | None:
+    """读取 Hybrid Retriever 最近一次调用的可序列化追溯信息。"""
+    trace = getattr(retriever, "last_trace", None)
+    if trace is None or not hasattr(trace, "model_dump"):
+        return None
+    return trace.model_dump(mode="json")
+
+
+def _record_hybrid_runtime_parameters(
+    *,
+    rag_config: RagPipelineConfig,
+    retriever: Retriever,
+    sparse_query_generator: EnglishSparseQueryGenerator | None,
+) -> RagPipelineConfig:
+    """补充 Hybrid 运行时可确定的 BM25 索引和稀疏查询配置。"""
+    bm25_retriever = getattr(retriever, "bm25_retriever", None)
+    if bm25_retriever is None:
+        return rag_config
+    parameters = dict(rag_config.retriever.parameters)
+    parameters["bm25_index_chunk_count"] = bm25_retriever.chunk_count
+    if sparse_query_generator is not None:
+        parameters["sparse_query_source"] = sparse_query_generator.source_name
+        parameters["sparse_query_model"] = sparse_query_generator.model_name
+        parameters["sparse_query_prompt_version"] = sparse_query_generator.prompt_version
+    return rag_config.model_copy(
+        update={"retriever": rag_config.retriever.model_copy(update={"parameters": parameters})}
     )
 
 

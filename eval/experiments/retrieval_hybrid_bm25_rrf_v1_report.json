@@ -1,0 +1,3898 @@
+{
+  "schema_version": 3,
+  "dataset": {
+    "path": "D:\\ProgramData\\PythonProject\\paper_rag\\eval\\datasets\\golden.jsonl",
+    "documents_path": "D:\\ProgramData\\PythonProject\\paper_rag\\eval\\datasets\\golden.documents.json",
+    "case_count": 13
+  },
+  "run": {
+    "source_dir": "D:\\ProgramData\\PythonProject\\paper_rag\\eval\\papers",
+    "index_dir": "D:\\ProgramData\\PythonProject\\paper_rag\\.paper_rag\\api_index",
+    "tenant_id": "eval",
+    "top_k": 3,
+    "rag_config": {
+      "reader": {
+        "id": "pdf_reader",
+        "source": null,
+        "model": null,
+        "parameters": {
+          "recursive": true
+        }
+      },
+      "chunker": {
+        "id": "token_window_chunker",
+        "source": null,
+        "model": null,
+        "parameters": {
+          "chunk_size": 800,
+          "chunk_overlap": 120,
+          "encoding_name": "cl100k_base"
+        }
+      },
+      "embedder": {
+        "id": "openai_embedder",
+        "source": "siliconflow",
+        "model": "Qwen/Qwen3-Embedding-4B",
+        "parameters": {}
+      },
+      "retriever": {
+        "id": "hybrid_retriever",
+        "source": null,
+        "model": null,
+        "parameters": {
+          "top_k": 3,
+          "candidate_top_k": 10,
+          "rrf_k": 60,
+          "bm25_k1": 1.5,
+          "bm25_b": 0.75,
+          "bm25_index_chunk_count": 117,
+          "sparse_query_source": "siliconflow",
+          "sparse_query_model": "deepseek-ai/DeepSeek-V4-Pro",
+          "sparse_query_prompt_version": "sparse_query_v1_english_keywords"
+        }
+      },
+      "generator": {
+        "id": "openai_generator",
+        "source": "siliconflow",
+        "model": "deepseek-ai/DeepSeek-V4-Pro",
+        "parameters": {
+          "min_score": 0.05,
+          "prompt_version": "answer_v4_corrective_mapping"
+        }
+      }
+    },
+    "judge": {
+      "enabled": false,
+      "source": "siliconflow",
+      "model": "deepseek-ai/DeepSeek-V4-Pro",
+      "prompt_version": "judge_v1_requirements"
+    },
+    "index": {
+      "status": "ready",
+      "document_count": 2,
+      "chunk_count": 117,
+      "indexed_chunk_count": 0
+    }
+  },
+  "summary": {
+    "case_count": 13,
+    "error_count": 0,
+    "retrieval": {
+      "top_k": 3,
+      "answerable_case_count": 13,
+      "answerable_hit_count": 8,
+      "retrieval_hit_rate": 0.6153846153846154,
+      "missed_case_ids": [
+        "golden_001",
+        "golden_006",
+        "golden_008",
+        "golden_010",
+        "golden_cross_001"
+      ],
+      "unanswerable_case_count": 0
+    },
+    "answer": {
+      "case_count": 13,
+      "success_count": 7,
+      "success_rate": 0.5384615384615384,
+      "answer_terms_case_count": 13,
+      "answer_terms_hit_count": 7,
+      "answer_terms_hit_rate": 0.5384615384615384
+    },
+    "citation": {
+      "case_count": 13,
+      "hit_count": 12,
+      "hit_rate": 0.9230769230769231
+    },
+    "refusal": {
+      "case_count": 0,
+      "success_count": 0,
+      "success_rate": 0.0
+    },
+    "judge": {
+      "enabled": false,
+      "case_count": 0,
+      "passed_count": 0,
+      "pass_rate": 0.0,
+      "average_score": 0.0,
+      "error_count": 0,
+      "failed_case_ids": []
+    },
+    "failed_case_ids": {
+      "retrieval": [
+        "golden_001",
+        "golden_006",
+        "golden_008",
+        "golden_010",
+        "golden_cross_001"
+      ],
+      "answer": [
+        "golden_001",
+        "golden_005",
+        "golden_006",
+        "golden_010",
+        "golden_012",
+        "golden_cross_001"
+      ],
+      "judge": []
+    }
+  },
+  "cases": [
+    {
+      "id": "golden_001",
+      "question": "论文中提出的 VSI-Bench 基准测试集包含了多少个问答对？其视频数据主要是由哪几个现有的公开数据集汇编而成的？",
+      "answerable": true,
+      "expectation": "direct_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "miss",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "472e0b6f80f0df6735a24c2a",
+        "e5e5b4ceeabe6828ded3a1da",
+        "7d0bda05c310e1f1755e6dc6"
+      ],
+      "retrieval_trace": {
+        "original_question": "论文中提出的 VSI-Bench 基准测试集包含了多少个问答对？其视频数据主要是由哪几个现有的公开数据集汇编而成的？",
+        "sparse_query": "VSI-Bench benchmark question-answer pairs number video data compiled from existing public datasets",
+        "vector_candidates": [
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 1,
+            "score": 0.7250912189483643
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 2,
+            "score": 0.6075727939605713
+          },
+          {
+            "chunk_id": "472e0b6f80f0df6735a24c2a",
+            "rank": 3,
+            "score": 0.6065228581428528
+          },
+          {
+            "chunk_id": "615b9b9fcf08c2dd46d1e3e0",
+            "rank": 4,
+            "score": 0.6061295866966248
+          },
+          {
+            "chunk_id": "e8b0f908af25fbe9274101cc",
+            "rank": 5,
+            "score": 0.5827285647392273
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 6,
+            "score": 0.5580586791038513
+          },
+          {
+            "chunk_id": "4825845ced7e1ed0efe84227",
+            "rank": 7,
+            "score": 0.5494657754898071
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 8,
+            "score": 0.5483083724975586
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 9,
+            "score": 0.5429928302764893
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 10,
+            "score": 0.5392701029777527
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "472e0b6f80f0df6735a24c2a",
+            "rank": 2,
+            "score": 0.9379965932115686
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 3,
+            "score": 0.7393361256526721
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 4,
+            "score": 0.737540821843223
+          },
+          {
+            "chunk_id": "e8b0f908af25fbe9274101cc",
+            "rank": 5,
+            "score": 0.6447607442343052
+          },
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 6,
+            "score": 0.596107625822602
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 7,
+            "score": 0.5095212627952841
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 8,
+            "score": 0.449927382142632
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 9,
+            "score": 0.4469331499711734
+          },
+          {
+            "chunk_id": "bac5da81e48b88d15799f67c",
+            "rank": 10,
+            "score": 0.4146741661073185
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "472e0b6f80f0df6735a24c2a",
+            "rank": 1,
+            "score": 0.03200204813108039
+          },
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 2,
+            "score": 0.031544957774465976
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 3,
+            "score": 0.031099324975891997
+          },
+          {
+            "chunk_id": "e8b0f908af25fbe9274101cc",
+            "rank": 4,
+            "score": 0.03076923076923077
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 5,
+            "score": 0.030621785881252923
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 6,
+            "score": 0.029910714285714284
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 7,
+            "score": 0.029418126757516764
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 8,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "615b9b9fcf08c2dd46d1e3e0",
+            "rank": 9,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 10,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "4825845ced7e1ed0efe84227",
+            "rank": 11,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 12,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "bac5da81e48b88d15799f67c",
+            "rank": 13,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "472e0b6f80f0df6735a24c2a",
+        "e5e5b4ceeabe6828ded3a1da",
+        "7d0bda05c310e1f1755e6dc6"
+      ],
+      "citation_labels": [
+        "[SIBE-LM.pdf, p.10]",
+        "[think in space.pdf, p.13]",
+        "[think in space.pdf, p.3]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "论文未明确给出 VSI-Bench 中问答对的总数，但说明了视频样本的来源与数量：从 ARKitScenes 收集 150 个样本、ScanNet++ 收集 50 个样本、ScanNet 收集 88 个样本，并基于这些样本生成问答对 [think in space.pdf, p.13]。其视频数据主要由 ScanNet、ScanNet++ 和 ARKitScenes 这三个公开数据集汇编而成 [think in space.pdf, pp.3,13]。",
+      "retrieval_metrics": {
+        "case_id": "golden_001",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 3,
+            "expected_terms": [
+              "VSI-Bench",
+              "5,000 question-answer pairs",
+              "ScanNet",
+              "ScanNet++",
+              "ARKitScenes"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": false,
+            "hit": false,
+            "matched_chunk_ids": [
+              "7d0bda05c310e1f1755e6dc6"
+            ],
+            "missing_terms": [
+              "5,000 question-answer pairs"
+            ]
+          }
+        ],
+        "hit_at_k": false,
+        "missed_reasons": [
+          "think_in_space pp.3-3: 缺少证据词 5,000 question-answer pairs"
+        ]
+      },
+      "answer_metrics": {
+        "case_id": "golden_001",
+        "answerable": true,
+        "expectation": "direct_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 3,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.3]"
+            ],
+            "matched_chunk_ids": [
+              "7d0bda05c310e1f1755e6dc6"
+            ]
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "室内"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "缺少答案词 室内"
+        ]
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [
+          "think_in_space pp.3-3: 缺少证据词 5,000 question-answer pairs"
+        ],
+        "answer": [
+          "缺少答案词 室内"
+        ],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_002",
+      "question": "论文通过实验得出，主流的语言提示技术（如零样本思维链 Zero-Shot CoT、思维树 ToT 等）能否提升多模态大语言模型（MLLMs）在 VSI-Bench 上的视觉空间推理表现？",
+      "answerable": true,
+      "expectation": "direct_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "48e0918ffbe1e2218086d35d",
+        "b765aadcb90fcadfee64a469"
+      ],
+      "retrieval_trace": {
+        "original_question": "论文通过实验得出，主流的语言提示技术（如零样本思维链 Zero-Shot CoT、思维树 ToT 等）能否提升多模态大语言模型（MLLMs）在 VSI-Bench 上的视觉空间推理表现？",
+        "sparse_query": "language prompting techniques Zero-Shot CoT ToT multimodal large language models MLLMs VSI-Bench visual-spatial reasoning",
+        "vector_candidates": [
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 1,
+            "score": 0.7334490418434143
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 2,
+            "score": 0.6730424165725708
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 3,
+            "score": 0.6601694822311401
+          },
+          {
+            "chunk_id": "0986c8a5b5a3ff817a73999d",
+            "rank": 4,
+            "score": 0.6574231386184692
+          },
+          {
+            "chunk_id": "f269e11e83ec03a6bb1eff12",
+            "rank": 5,
+            "score": 0.6569008827209473
+          },
+          {
+            "chunk_id": "a5cfdc5e24dfc20888feeded",
+            "rank": 6,
+            "score": 0.6562943458557129
+          },
+          {
+            "chunk_id": "b3eccbbd2233067fc145c81b",
+            "rank": 7,
+            "score": 0.6525012254714966
+          },
+          {
+            "chunk_id": "5156eea63a78a8d117d1df63",
+            "rank": 8,
+            "score": 0.6212184429168701
+          },
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 9,
+            "score": 0.6120293140411377
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 10,
+            "score": 0.6066786050796509
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 2,
+            "score": 0.6862683100560851
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 3,
+            "score": 0.6699061701792882
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 4,
+            "score": 0.6386348788022738
+          },
+          {
+            "chunk_id": "ce1d51f2059437b4ae711912",
+            "rank": 5,
+            "score": 0.4962966866887692
+          },
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 6,
+            "score": 0.44419456043368627
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 7,
+            "score": 0.42388010690634986
+          },
+          {
+            "chunk_id": "46d62c7c16ff41ce60633d34",
+            "rank": 8,
+            "score": 0.39570595519384777
+          },
+          {
+            "chunk_id": "f269e11e83ec03a6bb1eff12",
+            "rank": 9,
+            "score": 0.3811126260551685
+          },
+          {
+            "chunk_id": "f19b3e06ccef0fc25e5750de",
+            "rank": 10,
+            "score": 0.3713925491071378
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 1,
+            "score": 0.03278688524590164
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 2,
+            "score": 0.03200204813108039
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 3,
+            "score": 0.03149801587301587
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 4,
+            "score": 0.0304147465437788
+          },
+          {
+            "chunk_id": "f269e11e83ec03a6bb1eff12",
+            "rank": 5,
+            "score": 0.029877369007803793
+          },
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 6,
+            "score": 0.02964426877470356
+          },
+          {
+            "chunk_id": "0986c8a5b5a3ff817a73999d",
+            "rank": 7,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "ce1d51f2059437b4ae711912",
+            "rank": 8,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "a5cfdc5e24dfc20888feeded",
+            "rank": 9,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 10,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "b3eccbbd2233067fc145c81b",
+            "rank": 11,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "46d62c7c16ff41ce60633d34",
+            "rank": 12,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "5156eea63a78a8d117d1df63",
+            "rank": 13,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "f19b3e06ccef0fc25e5750de",
+            "rank": 14,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "48e0918ffbe1e2218086d35d",
+        "b765aadcb90fcadfee64a469"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.7]",
+        "[think in space.pdf, p.1]",
+        "[think in space.pdf, p.2]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "不能。论文实验表明，主流的语言提示技术（零样本思维链、自一致性、思维树）在 VSI-Bench 上均导致多模态大语言模型的视觉空间推理性能下降，而非提升。零样本思维链和思维树使平均性能下降约 4%，自一致性也低于无提示基线 1.1% [think in space.pdf, p.7]。摘要和引言也明确指出这些技术未能改善性能 [think in space.pdf, p.1][think in space.pdf, p.2]。",
+      "retrieval_metrics": {
+        "case_id": "golden_002",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 7,
+            "expected_terms": [
+              "CoT",
+              "Zero-Shot Chain-of-Thought",
+              "Self-Consistency w/ CoT",
+              "Tree-of-Thoughts (ToT)"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_002",
+        "answerable": true,
+        "expectation": "direct_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 7,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.7]"
+            ],
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [],
+        "answer": [],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_003",
+      "question": "在本文的视觉-空间智能分类体系中，自我中心到异我中心转换具体包含哪些子能力？",
+      "answerable": true,
+      "expectation": "direct_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "aa9bfe6ba90f21cbdb64c18b",
+        "58cba1f1d69b9af2aa2512e5",
+        "b765aadcb90fcadfee64a469"
+      ],
+      "retrieval_trace": {
+        "original_question": "在本文的视觉-空间智能分类体系中，自我中心到异我中心转换具体包含哪些子能力？",
+        "sparse_query": "visual spatial intelligence classification egocentric allocentric transformation sub-abilities",
+        "vector_candidates": [
+          {
+            "chunk_id": "aa9bfe6ba90f21cbdb64c18b",
+            "rank": 1,
+            "score": 0.6722358465194702
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 2,
+            "score": 0.5315399169921875
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 3,
+            "score": 0.5035467147827148
+          },
+          {
+            "chunk_id": "bac5da81e48b88d15799f67c",
+            "rank": 4,
+            "score": 0.4964008927345276
+          },
+          {
+            "chunk_id": "a9710dbf959d4d5c8b0e84a0",
+            "rank": 5,
+            "score": 0.4920254945755005
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 6,
+            "score": 0.49158424139022827
+          },
+          {
+            "chunk_id": "9dfbd38ac056f5003b1ce729",
+            "rank": 7,
+            "score": 0.47980761528015137
+          },
+          {
+            "chunk_id": "d699670fb48922c4f5a82625",
+            "rank": 8,
+            "score": 0.4790375232696533
+          },
+          {
+            "chunk_id": "8cc5a1af395859b0182e6c91",
+            "rank": 9,
+            "score": 0.4782423973083496
+          },
+          {
+            "chunk_id": "6ed7be2f2e8cf7a08f0b4523",
+            "rank": 10,
+            "score": 0.47255802154541016
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "aa9bfe6ba90f21cbdb64c18b",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 2,
+            "score": 0.6670781643710743
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 3,
+            "score": 0.6577082977254729
+          },
+          {
+            "chunk_id": "ce1d51f2059437b4ae711912",
+            "rank": 4,
+            "score": 0.46441702209368374
+          },
+          {
+            "chunk_id": "c91f5634b7215ff4e7c5fede",
+            "rank": 5,
+            "score": 0.38728913184629493
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 6,
+            "score": 0.38210119890969124
+          },
+          {
+            "chunk_id": "56c90f38eed4154f9fee7854",
+            "rank": 7,
+            "score": 0.357215134920861
+          },
+          {
+            "chunk_id": "8cc5a1af395859b0182e6c91",
+            "rank": 8,
+            "score": 0.2725579015359092
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 9,
+            "score": 0.2620723420829308
+          },
+          {
+            "chunk_id": "d699670fb48922c4f5a82625",
+            "rank": 10,
+            "score": 0.24796247827733797
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "aa9bfe6ba90f21cbdb64c18b",
+            "rank": 1,
+            "score": 0.03278688524590164
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 2,
+            "score": 0.03200204813108039
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 3,
+            "score": 0.03200204813108039
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 4,
+            "score": 0.030303030303030304
+          },
+          {
+            "chunk_id": "8cc5a1af395859b0182e6c91",
+            "rank": 5,
+            "score": 0.02919863597612958
+          },
+          {
+            "chunk_id": "d699670fb48922c4f5a82625",
+            "rank": 6,
+            "score": 0.028991596638655463
+          },
+          {
+            "chunk_id": "bac5da81e48b88d15799f67c",
+            "rank": 7,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "ce1d51f2059437b4ae711912",
+            "rank": 8,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "a9710dbf959d4d5c8b0e84a0",
+            "rank": 9,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "c91f5634b7215ff4e7c5fede",
+            "rank": 10,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "56c90f38eed4154f9fee7854",
+            "rank": 11,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "9dfbd38ac056f5003b1ce729",
+            "rank": 12,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 13,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "6ed7be2f2e8cf7a08f0b4523",
+            "rank": 14,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "aa9bfe6ba90f21cbdb64c18b",
+        "58cba1f1d69b9af2aa2512e5",
+        "b765aadcb90fcadfee64a469"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.2]",
+        "[think in space.pdf, p.6]",
+        "[think in space.pdf, p.2]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "根据本文的视觉-空间智能分类体系，自我中心到异我中心转换（Egocentric-allocentric Transformation）具体包含以下子能力：\n\n- **视角可视化（Perspective Visualization）**\n- **视觉空间工作记忆（Visuospatial Working Memory）**\n\n[think in space.pdf, p.2]",
+      "retrieval_metrics": {
+        "case_id": "golden_003",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 2,
+            "page_end": 3,
+            "expected_terms": [
+              "Egocentric-allocentric Transformation",
+              "Visuospatial Working Memory",
+              "Perspective Visualization"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "aa9bfe6ba90f21cbdb64c18b",
+              "b765aadcb90fcadfee64a469"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_003",
+        "answerable": true,
+        "expectation": "direct_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 2,
+            "page_end": 3,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.2]",
+              "[think in space.pdf, p.2]"
+            ],
+            "matched_chunk_ids": [
+              "aa9bfe6ba90f21cbdb64c18b",
+              "b765aadcb90fcadfee64a469"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [],
+        "answer": [],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_004",
+      "question": "顶级开源多模态大模型在 VSI-Bench 上的空间理解表现是否已经完全追平或超越了现有的闭源商业大模型？",
+      "answerable": true,
+      "expectation": "direct_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "bc7723dd06f0b40c64a5268f",
+        "f6ef78a58433e91803532deb",
+        "f3fdcbb899aafce20b5749a5"
+      ],
+      "retrieval_trace": {
+        "original_question": "顶级开源多模态大模型在 VSI-Bench 上的空间理解表现是否已经完全追平或超越了现有的闭源商业大模型？",
+        "sparse_query": "VSI-Bench spatial understanding open-source closed-source multimodal large models performance comparison",
+        "vector_candidates": [
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 1,
+            "score": 0.6384122371673584
+          },
+          {
+            "chunk_id": "f6ef78a58433e91803532deb",
+            "rank": 2,
+            "score": 0.6363250613212585
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 3,
+            "score": 0.6217690706253052
+          },
+          {
+            "chunk_id": "50c56e3ca08254a14048eb45",
+            "rank": 4,
+            "score": 0.6167273865807098
+          },
+          {
+            "chunk_id": "b3eccbbd2233067fc145c81b",
+            "rank": 5,
+            "score": 0.6121405363082886
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 6,
+            "score": 0.6063586473464966
+          },
+          {
+            "chunk_id": "f3fdcbb899aafce20b5749a5",
+            "rank": 7,
+            "score": 0.6026367545127869
+          },
+          {
+            "chunk_id": "51385de9bc1bd96926ad0034",
+            "rank": 8,
+            "score": 0.5914824604988098
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 9,
+            "score": 0.5881767868995667
+          },
+          {
+            "chunk_id": "8cc5a1af395859b0182e6c91",
+            "rank": 10,
+            "score": 0.5850962996482849
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "f6ef78a58433e91803532deb",
+            "rank": 2,
+            "score": 0.7408357677177209
+          },
+          {
+            "chunk_id": "f3fdcbb899aafce20b5749a5",
+            "rank": 3,
+            "score": 0.6606726153839285
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 4,
+            "score": 0.6175838232999175
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 5,
+            "score": 0.6013083705584895
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 6,
+            "score": 0.507492530113826
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 7,
+            "score": 0.5030210839157412
+          },
+          {
+            "chunk_id": "bac5da81e48b88d15799f67c",
+            "rank": 8,
+            "score": 0.4571099670674681
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 9,
+            "score": 0.45010579895352193
+          },
+          {
+            "chunk_id": "d6fd9451c6cdde3b4db7c329",
+            "rank": 10,
+            "score": 0.4473609789956413
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 1,
+            "score": 0.03278688524590164
+          },
+          {
+            "chunk_id": "f6ef78a58433e91803532deb",
+            "rank": 2,
+            "score": 0.03225806451612903
+          },
+          {
+            "chunk_id": "f3fdcbb899aafce20b5749a5",
+            "rank": 3,
+            "score": 0.030798389007344232
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 4,
+            "score": 0.030536130536130537
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 5,
+            "score": 0.030117753623188408
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 6,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "50c56e3ca08254a14048eb45",
+            "rank": 7,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "b3eccbbd2233067fc145c81b",
+            "rank": 8,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 9,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 10,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "51385de9bc1bd96926ad0034",
+            "rank": 11,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "bac5da81e48b88d15799f67c",
+            "rank": 12,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 13,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "8cc5a1af395859b0182e6c91",
+            "rank": 14,
+            "score": 0.014285714285714285
+          },
+          {
+            "chunk_id": "d6fd9451c6cdde3b4db7c329",
+            "rank": 15,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "bc7723dd06f0b40c64a5268f",
+        "f6ef78a58433e91803532deb",
+        "f3fdcbb899aafce20b5749a5"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.5]",
+        "[SIBE-LM.pdf, p.11]",
+        "[think in space.pdf, p.5]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "根据 VSI-Bench 的评测结果，顶级开源多模态大模型在空间理解上**尚未完全追平或超越**现有的闭源商业大模型。表现最好的开源模型（如 LLaVA-Video-72B 和 LLaVA-OneVision-72B）虽然展现出较强的竞争力，但仍落后于领先的闭源模型 Gemini-1.5 Pro 约 4% 至 5%，并且大多数开源模型（12 款中的 7 款）的得分甚至低于随机基线水平 [think in space.pdf, p.5]。",
+      "retrieval_metrics": {
+        "case_id": "golden_004",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 5,
+            "page_end": 5,
+            "expected_terms": [
+              "LLaVA-Video-72B",
+              "LLaVA-OneVision-72B",
+              "Gemini-1.5 Pro",
+              "4%",
+              "5%"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "bc7723dd06f0b40c64a5268f",
+              "f3fdcbb899aafce20b5749a5"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_004",
+        "answerable": true,
+        "expectation": "direct_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 5,
+            "page_end": 5,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.5]",
+              "[think in space.pdf, p.5]"
+            ],
+            "matched_chunk_ids": [
+              "bc7723dd06f0b40c64a5268f",
+              "f3fdcbb899aafce20b5749a5"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [],
+        "answer": [],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_005",
+      "question": "在数据收集与统一阶段，对于 ScanNet 数据集的视频，论文具体使用了哪种视频插帧算法来将其转换为 24 FPS 的连续视频？",
+      "answerable": true,
+      "expectation": "insufficient_detail",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "29cadfc92a634d5ba803cfbd",
+        "84ad88f62188a6a0ee2bfabb"
+      ],
+      "retrieval_trace": {
+        "original_question": "在数据收集与统一阶段，对于 ScanNet 数据集的视频，论文具体使用了哪种视频插帧算法来将其转换为 24 FPS 的连续视频？",
+        "sparse_query": "ScanNet video frame interpolation 24 FPS algorithm",
+        "vector_candidates": [
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 1,
+            "score": 0.548904299736023
+          },
+          {
+            "chunk_id": "29cadfc92a634d5ba803cfbd",
+            "rank": 2,
+            "score": 0.44791364669799805
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 3,
+            "score": 0.44681787490844727
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 4,
+            "score": 0.43459105491638184
+          },
+          {
+            "chunk_id": "be3bbe6b569dee8813d17344",
+            "rank": 5,
+            "score": 0.41848814487457275
+          },
+          {
+            "chunk_id": "44f2fc19bdcf5e1d6c3b77da",
+            "rank": 6,
+            "score": 0.41468459367752075
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 7,
+            "score": 0.4052637815475464
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 8,
+            "score": 0.3969118595123291
+          },
+          {
+            "chunk_id": "4f118304c7db50d62d876a69",
+            "rank": 9,
+            "score": 0.3915245532989502
+          },
+          {
+            "chunk_id": "615b9b9fcf08c2dd46d1e3e0",
+            "rank": 10,
+            "score": 0.3869907259941101
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "29cadfc92a634d5ba803cfbd",
+            "rank": 2,
+            "score": 0.553867941507445
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 3,
+            "score": 0.5244610999307536
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 4,
+            "score": 0.4851363034078126
+          },
+          {
+            "chunk_id": "5b2d3fbefad1f5f4cec53b1f",
+            "rank": 5,
+            "score": 0.3582174788712723
+          },
+          {
+            "chunk_id": "ce1d51f2059437b4ae711912",
+            "rank": 6,
+            "score": 0.33214790432257046
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 7,
+            "score": 0.2760061862259159
+          },
+          {
+            "chunk_id": "b4816829730ec77c44e4e827",
+            "rank": 8,
+            "score": 0.27353383871040665
+          },
+          {
+            "chunk_id": "aa9bfe6ba90f21cbdb64c18b",
+            "rank": 9,
+            "score": 0.264741696324957
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 10,
+            "score": 0.2625116588448665
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 1,
+            "score": 0.03278688524590164
+          },
+          {
+            "chunk_id": "29cadfc92a634d5ba803cfbd",
+            "rank": 2,
+            "score": 0.03225806451612903
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 3,
+            "score": 0.03125
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 4,
+            "score": 0.030798389007344232
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 5,
+            "score": 0.030158730158730156
+          },
+          {
+            "chunk_id": "5b2d3fbefad1f5f4cec53b1f",
+            "rank": 6,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "be3bbe6b569dee8813d17344",
+            "rank": 7,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "44f2fc19bdcf5e1d6c3b77da",
+            "rank": 8,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "ce1d51f2059437b4ae711912",
+            "rank": 9,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 10,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "b4816829730ec77c44e4e827",
+            "rank": 11,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 12,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "4f118304c7db50d62d876a69",
+            "rank": 13,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "aa9bfe6ba90f21cbdb64c18b",
+            "rank": 14,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "615b9b9fcf08c2dd46d1e3e0",
+            "rank": 15,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "29cadfc92a634d5ba803cfbd",
+        "84ad88f62188a6a0ee2bfabb"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.13]",
+        "[think in space.pdf, p.9]",
+        "[think in space.pdf, p.16]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "论文没有具体说明使用了哪种视频插帧算法，仅提到将 ScanNet 的单独帧转换为 24 FPS 的连续视频 [think in space.pdf, p.13]。",
+      "retrieval_metrics": {
+        "case_id": "golden_005",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 13,
+            "page_end": 13,
+            "expected_terms": [
+              "ScanNet",
+              "frames",
+              "videos",
+              "24 FPS"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "e5e5b4ceeabe6828ded3a1da"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_005",
+        "answerable": true,
+        "expectation": "insufficient_detail",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 13,
+            "page_end": 13,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.13]"
+            ],
+            "matched_chunk_ids": [
+              "e5e5b4ceeabe6828ded3a1da"
+            ]
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "未提及/没有说明/不足以回答/无相关信息/论文未涉及"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "缺少答案词 未提及/没有说明/不足以回答/无相关信息/论文未涉及"
+        ]
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [],
+        "answer": [
+          "缺少答案词 未提及/没有说明/不足以回答/无相关信息/论文未涉及"
+        ],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_006",
+      "question": "为了让多模态大模型输出其内部的“认知地图”，研究者是如何设计提示词以规范模型坐标输出格式的？",
+      "answerable": true,
+      "expectation": "direct_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "miss",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "8d0f8bcbee205a49785cbdea",
+        "48e0918ffbe1e2218086d35d",
+        "f19b3e06ccef0fc25e5750de"
+      ],
+      "retrieval_trace": {
+        "original_question": "为了让多模态大模型输出其内部的“认知地图”，研究者是如何设计提示词以规范模型坐标输出格式的？",
+        "sparse_query": "multimodal large model cognitive map prompt coordinate output format",
+        "vector_candidates": [
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 1,
+            "score": 0.5449250936508179
+          },
+          {
+            "chunk_id": "a5cfdc5e24dfc20888feeded",
+            "rank": 2,
+            "score": 0.5441199541091919
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 3,
+            "score": 0.5390318632125854
+          },
+          {
+            "chunk_id": "b3eccbbd2233067fc145c81b",
+            "rank": 4,
+            "score": 0.5361572504043579
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 5,
+            "score": 0.5288651585578918
+          },
+          {
+            "chunk_id": "b4a9f6f49f179c2449630955",
+            "rank": 6,
+            "score": 0.5232102870941162
+          },
+          {
+            "chunk_id": "4168a042570e7c986dc076b7",
+            "rank": 7,
+            "score": 0.5229572057723999
+          },
+          {
+            "chunk_id": "51385de9bc1bd96926ad0034",
+            "rank": 8,
+            "score": 0.5156949162483215
+          },
+          {
+            "chunk_id": "0986c8a5b5a3ff817a73999d",
+            "rank": 9,
+            "score": 0.5147570967674255
+          },
+          {
+            "chunk_id": "f19b3e06ccef0fc25e5750de",
+            "rank": 10,
+            "score": 0.5109865665435791
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "296356b29e02dad51012f0ee",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 2,
+            "score": 0.7821361063419084
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 3,
+            "score": 0.6560440377279253
+          },
+          {
+            "chunk_id": "f19b3e06ccef0fc25e5750de",
+            "rank": 4,
+            "score": 0.6514788579912091
+          },
+          {
+            "chunk_id": "6c9a0ee896b6d1b4822ee467",
+            "rank": 5,
+            "score": 0.6479351623424663
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 6,
+            "score": 0.6387281880405087
+          },
+          {
+            "chunk_id": "d699670fb48922c4f5a82625",
+            "rank": 7,
+            "score": 0.5969992833921816
+          },
+          {
+            "chunk_id": "b1e3bbcc58aa20cb53c7cd65",
+            "rank": 8,
+            "score": 0.5921401150839042
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 9,
+            "score": 0.5250367337469513
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 10,
+            "score": 0.5140113585753645
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 1,
+            "score": 0.03200204813108039
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 2,
+            "score": 0.03125763125763126
+          },
+          {
+            "chunk_id": "f19b3e06ccef0fc25e5750de",
+            "rank": 3,
+            "score": 0.029910714285714284
+          },
+          {
+            "chunk_id": "296356b29e02dad51012f0ee",
+            "rank": 4,
+            "score": 0.01639344262295082
+          },
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 5,
+            "score": 0.01639344262295082
+          },
+          {
+            "chunk_id": "a5cfdc5e24dfc20888feeded",
+            "rank": 6,
+            "score": 0.016129032258064516
+          },
+          {
+            "chunk_id": "b3eccbbd2233067fc145c81b",
+            "rank": 7,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "6c9a0ee896b6d1b4822ee467",
+            "rank": 8,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "b4a9f6f49f179c2449630955",
+            "rank": 9,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 10,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "4168a042570e7c986dc076b7",
+            "rank": 11,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "d699670fb48922c4f5a82625",
+            "rank": 12,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "51385de9bc1bd96926ad0034",
+            "rank": 13,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "b1e3bbcc58aa20cb53c7cd65",
+            "rank": 14,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "0986c8a5b5a3ff817a73999d",
+            "rank": 15,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 16,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 17,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "8d0f8bcbee205a49785cbdea",
+        "48e0918ffbe1e2218086d35d",
+        "f19b3e06ccef0fc25e5750de"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.15]",
+        "[think in space.pdf, p.1]",
+        "[think in space.pdf, p.8]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "研究者设计了一个提示词（Cognitive Map Prompt），要求模型将整个场景假设为一个10x10的网格，并估计每个指定物体实例的中心点位置，从而规范坐标输出格式。提示词中明确给出了任务和规则，例如：“assuming the entire scene is represented by a 10x10 grid”和“Estimate the center location of each instance”[think in space.pdf, p.15]。不过，提供的证据片段未显示规则2的完整内容，因此具体的坐标输出格式细节（如坐标表示方式）未能完全呈现。",
+      "retrieval_metrics": {
+        "case_id": "golden_006",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 15,
+            "page_end": 16,
+            "expected_terms": [
+              "10x10 grid",
+              "JSON format",
+              "dictionary"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": false,
+            "hit": false,
+            "matched_chunk_ids": [
+              "8d0f8bcbee205a49785cbdea"
+            ],
+            "missing_terms": [
+              "JSON format",
+              "dictionary"
+            ]
+          }
+        ],
+        "hit_at_k": false,
+        "missed_reasons": [
+          "think_in_space pp.15-16: 缺少证据词 JSON format, dictionary"
+        ]
+      },
+      "answer_metrics": {
+        "case_id": "golden_006",
+        "answerable": true,
+        "expectation": "direct_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 15,
+            "page_end": 16,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.15]"
+            ],
+            "matched_chunk_ids": [
+              "8d0f8bcbee205a49785cbdea"
+            ]
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "字典",
+          "JSON"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "缺少答案词 字典, JSON"
+        ]
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [
+          "think_in_space pp.15-16: 缺少证据词 JSON format, dictionary"
+        ],
+        "answer": [
+          "缺少答案词 字典, JSON"
+        ],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_007",
+      "question": "为什么主流的语言提示技术（如 CoT）无法提升模型在基准测试上的表现，而让模型显式生成“认知地图”却能改善空间距离推理？",
+      "answerable": true,
+      "expectation": "direct_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "8d0f8bcbee205a49785cbdea",
+        "f19b3e06ccef0fc25e5750de"
+      ],
+      "retrieval_trace": {
+        "original_question": "为什么主流的语言提示技术（如 CoT）无法提升模型在基准测试上的表现，而让模型显式生成“认知地图”却能改善空间距离推理？",
+        "sparse_query": "Chain-of-Thought CoT cognitive map spatial distance reasoning benchmark prompting",
+        "vector_candidates": [
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 1,
+            "score": 0.7430424690246582
+          },
+          {
+            "chunk_id": "f19b3e06ccef0fc25e5750de",
+            "rank": 2,
+            "score": 0.647010326385498
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 3,
+            "score": 0.6077685356140137
+          },
+          {
+            "chunk_id": "6c9a0ee896b6d1b4822ee467",
+            "rank": 4,
+            "score": 0.5998120307922363
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 5,
+            "score": 0.581854522228241
+          },
+          {
+            "chunk_id": "9dfbd38ac056f5003b1ce729",
+            "rank": 6,
+            "score": 0.5714915990829468
+          },
+          {
+            "chunk_id": "7e55f01fd154b6ea648ce9ca",
+            "rank": 7,
+            "score": 0.5713052749633789
+          },
+          {
+            "chunk_id": "d699670fb48922c4f5a82625",
+            "rank": 8,
+            "score": 0.5706149339675903
+          },
+          {
+            "chunk_id": "a5cfdc5e24dfc20888feeded",
+            "rank": 9,
+            "score": 0.564751148223877
+          },
+          {
+            "chunk_id": "b3eccbbd2233067fc145c81b",
+            "rank": 10,
+            "score": 0.5608431100845337
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 2,
+            "score": 0.991871045150971
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 3,
+            "score": 0.824044289592817
+          },
+          {
+            "chunk_id": "a1a13d72f3c56642c1ff8f5e",
+            "rank": 4,
+            "score": 0.8082452834094438
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 5,
+            "score": 0.7650257788562079
+          },
+          {
+            "chunk_id": "f19b3e06ccef0fc25e5750de",
+            "rank": 6,
+            "score": 0.6652308467005944
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 7,
+            "score": 0.622794108450094
+          },
+          {
+            "chunk_id": "51385de9bc1bd96926ad0034",
+            "rank": 8,
+            "score": 0.5994939716418923
+          },
+          {
+            "chunk_id": "b1e3bbcc58aa20cb53c7cd65",
+            "rank": 9,
+            "score": 0.5804832463874285
+          },
+          {
+            "chunk_id": "296356b29e02dad51012f0ee",
+            "rank": 10,
+            "score": 0.5564940488405099
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 1,
+            "score": 0.03278688524590164
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 2,
+            "score": 0.03200204813108039
+          },
+          {
+            "chunk_id": "f19b3e06ccef0fc25e5750de",
+            "rank": 3,
+            "score": 0.03128054740957967
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 4,
+            "score": 0.03076923076923077
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 5,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "6c9a0ee896b6d1b4822ee467",
+            "rank": 6,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "a1a13d72f3c56642c1ff8f5e",
+            "rank": 7,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "9dfbd38ac056f5003b1ce729",
+            "rank": 8,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 9,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "7e55f01fd154b6ea648ce9ca",
+            "rank": 10,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "51385de9bc1bd96926ad0034",
+            "rank": 11,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "d699670fb48922c4f5a82625",
+            "rank": 12,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "a5cfdc5e24dfc20888feeded",
+            "rank": 13,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "b1e3bbcc58aa20cb53c7cd65",
+            "rank": 14,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "296356b29e02dad51012f0ee",
+            "rank": 15,
+            "score": 0.014285714285714285
+          },
+          {
+            "chunk_id": "b3eccbbd2233067fc145c81b",
+            "rank": 16,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "8d0f8bcbee205a49785cbdea",
+        "f19b3e06ccef0fc25e5750de"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.7]",
+        "[think in space.pdf, p.15]",
+        "[think in space.pdf, p.8]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "主流语言提示技术（如 CoT）在 VSI-Bench 上无法提升表现，反而导致平均性能下降，是因为这类技术仅增强了语言推理能力，而该基准测试评估的是视觉空间智能，单纯的语言能力无法弥补空间推理的缺陷，甚至会产生干扰 [think in space.pdf, p.7]。证据显示，Zero-Shot CoT 和 Tree-of-Thoughts 使平均性能下降约 4%，Self-Consistency 也低于无提示基线 1.1%，尤其在房间大小和物体大小任务上下降 8%–21%，表明“鼓励模型多思考”在空间推理中不仅不可靠，甚至有害 [think in space.pdf, p.7]。\n\n相比之下，让模型显式生成“认知地图”能改善相对距离推理，是因为认知地图促使模型构建一个空间心理世界模型，将视频中离散的局部空间信息整合为可用于距离比较的拓扑结构 [think in space.pdf, p.8]。实验表明，使用模型自生成的认知地图可将相对距离准确率从 46.0% 提升至 56.0%，使用真实认知地图更可提升至 66.0%–78.0%，说明构建准确的心理地图是解决视觉空间推理的关键一步 [think in space.pdf, p.8]。此外，模型在记忆空间时倾向于形成一系列局部世界模型而非统一全局模型，认知地图恰好能强化这种局部距离感知，并将其迁移到距离推理任务中 [think in space.pdf, p.8]。",
+      "retrieval_metrics": {
+        "case_id": "golden_007",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 8,
+            "expected_terms": [
+              "harmful for spatial reasoning",
+              "local world models",
+              "generating and using cognitive maps"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2",
+              "f19b3e06ccef0fc25e5750de"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_007",
+        "answerable": true,
+        "expectation": "direct_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 8,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.7]",
+              "[think in space.pdf, p.8]"
+            ],
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2",
+              "f19b3e06ccef0fc25e5750de"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [],
+        "answer": [],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_008",
+      "question": "论文中展示了 MLLMs 在 VSI-Bench 中不同任务类型的错误分类占比（Error Breakdown by Task），该图表编号是什么？",
+      "answerable": true,
+      "expectation": "direct_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "miss",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "58cba1f1d69b9af2aa2512e5",
+        "5b2d3fbefad1f5f4cec53b1f",
+        "e8b0f908af25fbe9274101cc"
+      ],
+      "retrieval_trace": {
+        "original_question": "论文中展示了 MLLMs 在 VSI-Bench 中不同任务类型的错误分类占比（Error Breakdown by Task），该图表编号是什么？",
+        "sparse_query": "MLLMs VSI-Bench Error Breakdown by Task figure number",
+        "vector_candidates": [
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 1,
+            "score": 0.6184555888175964
+          },
+          {
+            "chunk_id": "5b2d3fbefad1f5f4cec53b1f",
+            "rank": 2,
+            "score": 0.5601164102554321
+          },
+          {
+            "chunk_id": "e5244c7bbad5795554d31c31",
+            "rank": 3,
+            "score": 0.5587734580039978
+          },
+          {
+            "chunk_id": "f3fdcbb899aafce20b5749a5",
+            "rank": 4,
+            "score": 0.553613543510437
+          },
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 5,
+            "score": 0.5457898378372192
+          },
+          {
+            "chunk_id": "615b9b9fcf08c2dd46d1e3e0",
+            "rank": 6,
+            "score": 0.5316228866577148
+          },
+          {
+            "chunk_id": "e8b0f908af25fbe9274101cc",
+            "rank": 7,
+            "score": 0.5307198762893677
+          },
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 8,
+            "score": 0.5291532278060913
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 9,
+            "score": 0.5265964269638062
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 10,
+            "score": 0.5055158734321594
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "c91f5634b7215ff4e7c5fede",
+            "rank": 2,
+            "score": 0.8352186491455411
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 3,
+            "score": 0.6930042471852563
+          },
+          {
+            "chunk_id": "7e55f01fd154b6ea648ce9ca",
+            "rank": 4,
+            "score": 0.6780421869704781
+          },
+          {
+            "chunk_id": "e8b0f908af25fbe9274101cc",
+            "rank": 5,
+            "score": 0.6646222525789625
+          },
+          {
+            "chunk_id": "5b2d3fbefad1f5f4cec53b1f",
+            "rank": 6,
+            "score": 0.6150764552725374
+          },
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 7,
+            "score": 0.6009776271746791
+          },
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 8,
+            "score": 0.5901177818524285
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 9,
+            "score": 0.5696409682648789
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 10,
+            "score": 0.569577554687159
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 1,
+            "score": 0.03278688524590164
+          },
+          {
+            "chunk_id": "5b2d3fbefad1f5f4cec53b1f",
+            "rank": 2,
+            "score": 0.03128054740957967
+          },
+          {
+            "chunk_id": "e8b0f908af25fbe9274101cc",
+            "rank": 3,
+            "score": 0.030309988518943745
+          },
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 4,
+            "score": 0.029631255487269532
+          },
+          {
+            "chunk_id": "c91f5634b7215ff4e7c5fede",
+            "rank": 5,
+            "score": 0.016129032258064516
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 6,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "e5244c7bbad5795554d31c31",
+            "rank": 7,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "7e55f01fd154b6ea648ce9ca",
+            "rank": 8,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "f3fdcbb899aafce20b5749a5",
+            "rank": 9,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 10,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "615b9b9fcf08c2dd46d1e3e0",
+            "rank": 11,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 12,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 13,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 14,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 15,
+            "score": 0.014285714285714285
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 16,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "58cba1f1d69b9af2aa2512e5",
+        "5b2d3fbefad1f5f4cec53b1f",
+        "e8b0f908af25fbe9274101cc"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.6]",
+        "[think in space.pdf, p.17]",
+        "[think in space.pdf, p.4]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "根据提供的证据，论文中展示的错误分类图表是 **Figure 7**，但该图表是按错误类型（视觉感知、语言智能、关系推理、自我中心-异我中心转换）进行分类的，而非按任务类型 [think in space.pdf, p.6]。证据中未出现按任务类型划分的错误分类占比图表。",
+      "retrieval_metrics": {
+        "case_id": "golden_008",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 6,
+            "expected_terms": [
+              "Error Breakdown by Task",
+              "Figure 7"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": false,
+            "hit": false,
+            "matched_chunk_ids": [
+              "58cba1f1d69b9af2aa2512e5"
+            ],
+            "missing_terms": [
+              "Error Breakdown by Task"
+            ]
+          }
+        ],
+        "hit_at_k": false,
+        "missed_reasons": [
+          "think_in_space pp.6-6: 缺少证据词 Error Breakdown by Task"
+        ]
+      },
+      "answer_metrics": {
+        "case_id": "golden_008",
+        "answerable": true,
+        "expectation": "direct_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 6,
+            "page_end": 6,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.6]"
+            ],
+            "matched_chunk_ids": [
+              "58cba1f1d69b9af2aa2512e5"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [
+          "think_in_space pp.6-6: 缺少证据词 Error Breakdown by Task"
+        ],
+        "answer": [],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_009",
+      "question": "作者为什么要将ScanNet++的单帧画面合成为30fps的视频？",
+      "answerable": true,
+      "expectation": "corrective_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "be3bbe6b569dee8813d17344",
+        "71a9f9b0ea715b5e489df778"
+      ],
+      "retrieval_trace": {
+        "original_question": "作者为什么要将ScanNet++的单帧画面合成为30fps的视频？",
+        "sparse_query": "ScanNet++ single-frame synthesis 30fps video reason",
+        "vector_candidates": [
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 1,
+            "score": 0.5595853328704834
+          },
+          {
+            "chunk_id": "29cadfc92a634d5ba803cfbd",
+            "rank": 2,
+            "score": 0.45890092849731445
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 3,
+            "score": 0.45620059967041016
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 4,
+            "score": 0.45139288902282715
+          },
+          {
+            "chunk_id": "be3bbe6b569dee8813d17344",
+            "rank": 5,
+            "score": 0.43627166748046875
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 6,
+            "score": 0.42069852352142334
+          },
+          {
+            "chunk_id": "4f118304c7db50d62d876a69",
+            "rank": 7,
+            "score": 0.42048537731170654
+          },
+          {
+            "chunk_id": "71a9f9b0ea715b5e489df778",
+            "rank": 8,
+            "score": 0.4107632637023926
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 9,
+            "score": 0.4105919599533081
+          },
+          {
+            "chunk_id": "abbcb689b2c455c6019caae8",
+            "rank": 10,
+            "score": 0.409623384475708
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 2,
+            "score": 0.8912280466111168
+          },
+          {
+            "chunk_id": "f90b48fd927b68c386ac08f4",
+            "rank": 3,
+            "score": 0.7419764948907468
+          },
+          {
+            "chunk_id": "d6fd9451c6cdde3b4db7c329",
+            "rank": 4,
+            "score": 0.7146986330582018
+          },
+          {
+            "chunk_id": "6caf5c00fbc58484b7f70d56",
+            "rank": 5,
+            "score": 0.7125809677791983
+          },
+          {
+            "chunk_id": "71a9f9b0ea715b5e489df778",
+            "rank": 6,
+            "score": 0.7099776961046586
+          },
+          {
+            "chunk_id": "c95f894f968a320f7bbd6ddf",
+            "rank": 7,
+            "score": 0.6579648737565373
+          },
+          {
+            "chunk_id": "be3bbe6b569dee8813d17344",
+            "rank": 8,
+            "score": 0.6562881568965699
+          },
+          {
+            "chunk_id": "d699670fb48922c4f5a82625",
+            "rank": 9,
+            "score": 0.6276556853649183
+          },
+          {
+            "chunk_id": "de1a768bc831e8eb4a237a46",
+            "rank": 10,
+            "score": 0.5887849654668894
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 1,
+            "score": 0.03278688524590164
+          },
+          {
+            "chunk_id": "be3bbe6b569dee8813d17344",
+            "rank": 2,
+            "score": 0.030090497737556562
+          },
+          {
+            "chunk_id": "71a9f9b0ea715b5e489df778",
+            "rank": 3,
+            "score": 0.029857397504456328
+          },
+          {
+            "chunk_id": "29cadfc92a634d5ba803cfbd",
+            "rank": 4,
+            "score": 0.016129032258064516
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 5,
+            "score": 0.016129032258064516
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 6,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "f90b48fd927b68c386ac08f4",
+            "rank": 7,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "84ad88f62188a6a0ee2bfabb",
+            "rank": 8,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "d6fd9451c6cdde3b4db7c329",
+            "rank": 9,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "6caf5c00fbc58484b7f70d56",
+            "rank": 10,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 11,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "4f118304c7db50d62d876a69",
+            "rank": 12,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "c95f894f968a320f7bbd6ddf",
+            "rank": 13,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 14,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "d699670fb48922c4f5a82625",
+            "rank": 15,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "abbcb689b2c455c6019caae8",
+            "rank": 16,
+            "score": 0.014285714285714285
+          },
+          {
+            "chunk_id": "de1a768bc831e8eb4a237a46",
+            "rank": 17,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "be3bbe6b569dee8813d17344",
+        "71a9f9b0ea715b5e489df778"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.13]",
+        "[think in space.pdf, p.12]",
+        "[SIBE-LM.pdf, p.9]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "问题前提不成立：根据证据，ScanNet++ 原本就是视频，作者对其进行了下采样（subsampling）至 30 FPS，而非将单帧画面合成为视频。实际被从单帧画面合成为视频的是 ScanNet 数据集，帧率为 24 FPS。这些处理均是为了在 VSI-Bench 构建中统一视频格式 [think in space.pdf, p.13]。",
+      "retrieval_metrics": {
+        "case_id": "golden_009",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 13,
+            "page_end": 13,
+            "expected_terms": [
+              "individual frames",
+              "24 FPS",
+              "subsampling ScanNet++",
+              "30 FPS"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "e5e5b4ceeabe6828ded3a1da"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_009",
+        "answerable": true,
+        "expectation": "corrective_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 13,
+            "page_end": 13,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.13]"
+            ],
+            "matched_chunk_ids": [
+              "e5e5b4ceeabe6828ded3a1da"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [],
+        "answer": [],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_010",
+      "question": "构建VSI-Bench，作者具体做了哪些工作？",
+      "answerable": true,
+      "expectation": "direct_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "miss",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "472e0b6f80f0df6735a24c2a",
+        "fd518e0bbf42e9c18bbacb69"
+      ],
+      "retrieval_trace": {
+        "original_question": "构建VSI-Bench，作者具体做了哪些工作？",
+        "sparse_query": "VSI-Bench construction",
+        "vector_candidates": [
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 1,
+            "score": 0.6773988008499146
+          },
+          {
+            "chunk_id": "472e0b6f80f0df6735a24c2a",
+            "rank": 2,
+            "score": 0.5562292337417603
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 3,
+            "score": 0.5453635454177856
+          },
+          {
+            "chunk_id": "615b9b9fcf08c2dd46d1e3e0",
+            "rank": 4,
+            "score": 0.5367534160614014
+          },
+          {
+            "chunk_id": "2846e7561a46f27f040808a9",
+            "rank": 5,
+            "score": 0.5349026922867547
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 6,
+            "score": 0.5339270830154419
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 7,
+            "score": 0.5287111401557922
+          },
+          {
+            "chunk_id": "50c56e3ca08254a14048eb45",
+            "rank": 8,
+            "score": 0.5222055141898887
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 9,
+            "score": 0.5187302827835083
+          },
+          {
+            "chunk_id": "f3fdcbb899aafce20b5749a5",
+            "rank": 10,
+            "score": 0.5166685581207275
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 2,
+            "score": 0.9803713314635506
+          },
+          {
+            "chunk_id": "472e0b6f80f0df6735a24c2a",
+            "rank": 3,
+            "score": 0.5838674347271239
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 4,
+            "score": 0.5259953099928754
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 5,
+            "score": 0.34675133720454754
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 6,
+            "score": 0.34139950835464833
+          },
+          {
+            "chunk_id": "5b2d3fbefad1f5f4cec53b1f",
+            "rank": 7,
+            "score": 0.337589363614476
+          },
+          {
+            "chunk_id": "191daf0d3ab3e201e72dac95",
+            "rank": 8,
+            "score": 0.3287023262752579
+          },
+          {
+            "chunk_id": "f3fdcbb899aafce20b5749a5",
+            "rank": 9,
+            "score": 0.3168786286042685
+          },
+          {
+            "chunk_id": "2846e7561a46f27f040808a9",
+            "rank": 10,
+            "score": 0.31078510071729226
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 1,
+            "score": 0.03278688524590164
+          },
+          {
+            "chunk_id": "472e0b6f80f0df6735a24c2a",
+            "rank": 2,
+            "score": 0.03200204813108039
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 3,
+            "score": 0.030536130536130537
+          },
+          {
+            "chunk_id": "2846e7561a46f27f040808a9",
+            "rank": 4,
+            "score": 0.02967032967032967
+          },
+          {
+            "chunk_id": "f3fdcbb899aafce20b5749a5",
+            "rank": 5,
+            "score": 0.02877846790890269
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 6,
+            "score": 0.016129032258064516
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 7,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 8,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "615b9b9fcf08c2dd46d1e3e0",
+            "rank": 9,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 10,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "5b2d3fbefad1f5f4cec53b1f",
+            "rank": 11,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 12,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "191daf0d3ab3e201e72dac95",
+            "rank": 13,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "50c56e3ca08254a14048eb45",
+            "rank": 14,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 15,
+            "score": 0.014492753623188406
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "e5e5b4ceeabe6828ded3a1da",
+        "472e0b6f80f0df6735a24c2a",
+        "fd518e0bbf42e9c18bbacb69"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.13]",
+        "[SIBE-LM.pdf, p.10]",
+        "[think in space.pdf, p.3]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "作者在构建 VSI-Bench 时，具体开展了以下工作：\n\n1. **数据集收集与预处理**  \n   - 从 ARKitScenes、ScanNet++ 和 ScanNet 三个公开室内 3D 场景重建数据集的验证集中，分别收集 150、50 和 88 个样本，共 288 段真实视频 [think in space.pdf, p.13][think in space.pdf, p.3]。  \n   - 统一视频格式：将 ScanNet 的独立帧合成为 24 FPS 的连续视频，对 ScanNet++ 和 ARKitScenes 视频降采样至 30 FPS，所有视频分辨率标准化为 640×480 像素，并对 ARKitScenes 视频进行旋转归一化以保持向上方向一致 [think in space.pdf, p.13]。\n\n2. **元信息统一与类别整理**  \n   - 将不同数据集的标注结构统一为标准化元信息格式，包含数据集、视频路径、房间尺寸、房间中心、物体计数和物体边界框等属性 [think in space.pdf, p.13]。  \n   - 房间尺寸通过 Alpha shape 算法结合场景点云计算，房间中心取点云最小包围盒的几何中心，物体边界框统一为 Open3D 的 OrientedBoundingBox 格式 [think in space.pdf, p.13]。  \n   - 精心筛选类别子集，排除稀有类别和极小物体以降低感知难度，并进行类别重映射以保证词汇一致性和直观理解，该重映射在人工审查中迭代优化 [think in space.pdf, p.13]。\n\n3. **问答对（QA-pair）生成**  \n   - 每个 QA 对包含问题 ID、源数据集、任务类型、视频路径、问题文本、多选选项及字母答案、口头或数值真实答案 [think in space.pdf, p.13]。  \n   - 八类任务中，七类任务的 QA 对从统一元信息自动派生，路线规划任务的 QA 对来自人工标注的路线 [think in space.pdf, p.13]。  \n   - 对数值答案任务，在真实值上下界因子之间采样生成多选选项，若任意两选项过于接近则重新采样；对每个场景每个任务的问题数量进行子采样，防止场景或任务过度代表，多选任务的字母答案尽量均匀分布 [think in space.pdf, p.13]。\n\n4. **质量保证与迭代审查**  \n   - 通过多轮人工审查，最小化问题歧义，并移除从源数据集中传播而来的错误标注，最终构建了包含超过 5000 个 QA 对的高质量基准 [think in space.pdf, p.3][think in space.pdf, p.13]。",
+      "retrieval_metrics": {
+        "case_id": "golden_010",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 4,
+            "expected_terms": [
+              "Benchmark Construction",
+              "Data Collection and Unification",
+              "Question-Answer Generation",
+              "Human-in-the-loop Quality Review"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": false,
+            "hit": false,
+            "matched_chunk_ids": [
+              "fd518e0bbf42e9c18bbacb69"
+            ],
+            "missing_terms": [
+              "Benchmark Construction",
+              "Data Collection and Unification",
+              "Question-Answer Generation",
+              "Human-in-the-loop Quality Review"
+            ]
+          }
+        ],
+        "hit_at_k": false,
+        "missed_reasons": [
+          "think_in_space pp.3-4: 缺少证据词 Benchmark Construction, Data Collection and Unification, Question-Answer Generation, Human-in-the-loop Quality Review"
+        ]
+      },
+      "answer_metrics": {
+        "case_id": "golden_010",
+        "answerable": true,
+        "expectation": "direct_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 4,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.3]"
+            ],
+            "matched_chunk_ids": [
+              "fd518e0bbf42e9c18bbacb69"
+            ]
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "数据收集与统一",
+          "问答对生成",
+          "质量审查"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "缺少答案词 数据收集与统一, 问答对生成, 质量审查"
+        ]
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [
+          "think_in_space pp.3-4: 缺少证据词 Benchmark Construction, Data Collection and Unification, Question-Answer Generation, Human-in-the-loop Quality Review"
+        ],
+        "answer": [
+          "缺少答案词 数据收集与统一, 问答对生成, 质量审查"
+        ],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_011",
+      "question": "论文在实验中是如何调整参数或设计提示词的，从而使得思维链（Chain-of-Thought）等语言推理技术大幅提升了模型在“房间大小（Room Size）”估计任务上的准确率？",
+      "answerable": true,
+      "expectation": "corrective_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "pass",
+      "retrieved_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "8d0f8bcbee205a49785cbdea",
+        "e8b0f908af25fbe9274101cc"
+      ],
+      "retrieval_trace": {
+        "original_question": "论文在实验中是如何调整参数或设计提示词的，从而使得思维链（Chain-of-Thought）等语言推理技术大幅提升了模型在“房间大小（Room Size）”估计任务上的准确率？",
+        "sparse_query": "Chain-of-Thought prompt design parameter adjustment room size estimation accuracy",
+        "vector_candidates": [
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 1,
+            "score": 0.6006220579147339
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 2,
+            "score": 0.5516772270202637
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 3,
+            "score": 0.5096316337585449
+          },
+          {
+            "chunk_id": "88b48dc2c083ed6b4e1dd0fd",
+            "rank": 4,
+            "score": 0.4515579342842102
+          },
+          {
+            "chunk_id": "0986c8a5b5a3ff817a73999d",
+            "rank": 5,
+            "score": 0.45036089420318604
+          },
+          {
+            "chunk_id": "a5cfdc5e24dfc20888feeded",
+            "rank": 6,
+            "score": 0.43937039375305176
+          },
+          {
+            "chunk_id": "b3eccbbd2233067fc145c81b",
+            "rank": 7,
+            "score": 0.4363100528717041
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 8,
+            "score": 0.4315677881240845
+          },
+          {
+            "chunk_id": "caadc4f14c79acc602c8b709",
+            "rank": 9,
+            "score": 0.42217588424682617
+          },
+          {
+            "chunk_id": "eb9349c8c6b292002ba53754",
+            "rank": 10,
+            "score": 0.4203044381056278
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "e8b0f908af25fbe9274101cc",
+            "rank": 2,
+            "score": 0.9807081346400862
+          },
+          {
+            "chunk_id": "6c9a0ee896b6d1b4822ee467",
+            "rank": 3,
+            "score": 0.717797785371883
+          },
+          {
+            "chunk_id": "b21fc6924aa205223d1c5b70",
+            "rank": 4,
+            "score": 0.6624993162232384
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 5,
+            "score": 0.6542939247699561
+          },
+          {
+            "chunk_id": "71a9f9b0ea715b5e489df778",
+            "rank": 6,
+            "score": 0.5589728894951698
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 7,
+            "score": 0.5485226001880456
+          },
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 8,
+            "score": 0.5260728293978602
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 9,
+            "score": 0.5251094397642541
+          },
+          {
+            "chunk_id": "615b9b9fcf08c2dd46d1e3e0",
+            "rank": 10,
+            "score": 0.5236483171889739
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "ab7afc504277060318fc71f2",
+            "rank": 1,
+            "score": 0.03278688524590164
+          },
+          {
+            "chunk_id": "8d0f8bcbee205a49785cbdea",
+            "rank": 2,
+            "score": 0.030621785881252923
+          },
+          {
+            "chunk_id": "e8b0f908af25fbe9274101cc",
+            "rank": 3,
+            "score": 0.016129032258064516
+          },
+          {
+            "chunk_id": "6c9a0ee896b6d1b4822ee467",
+            "rank": 4,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 5,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "88b48dc2c083ed6b4e1dd0fd",
+            "rank": 6,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "b21fc6924aa205223d1c5b70",
+            "rank": 7,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "0986c8a5b5a3ff817a73999d",
+            "rank": 8,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 9,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "71a9f9b0ea715b5e489df778",
+            "rank": 10,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "a5cfdc5e24dfc20888feeded",
+            "rank": 11,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 12,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "b3eccbbd2233067fc145c81b",
+            "rank": 13,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 14,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 15,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "caadc4f14c79acc602c8b709",
+            "rank": 16,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "615b9b9fcf08c2dd46d1e3e0",
+            "rank": 17,
+            "score": 0.014285714285714285
+          },
+          {
+            "chunk_id": "eb9349c8c6b292002ba53754",
+            "rank": 18,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "ab7afc504277060318fc71f2",
+        "8d0f8bcbee205a49785cbdea",
+        "e8b0f908af25fbe9274101cc"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.7]",
+        "[think in space.pdf, p.15]",
+        "[think in space.pdf, p.4]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "问题前提不成立：根据论文提供的实验证据，思维链（Chain-of-Thought）等语言推理技术并未提升模型在“房间大小（Room Size）”估计任务上的准确率，反而导致准确率大幅下降（降幅达8%至21%）。论文明确指出，这些技术对空间推理任务有害，而非有益 [think in space.pdf, p.7]。\n\n论文中确实详细描述了这些技术的参数与提示词设计，例如：\n- Zero-Shot CoT：在问题后追加“Let’s think step by step.”，温度等参数设为0 [think in space.pdf, p.15]。\n- Self-Consistency w/ CoT：温度设为0.7，进行5次独立运行并取多数共识 [think in space.pdf, p.15]。\n- Tree-of-Thoughts：将推理分为计划生成与答案预测两步，生成多个计划与答案并投票选择 [think in space.pdf, p.15]。\n\n但实验结果显示，这些设计并未带来提升，反而使房间大小任务的性能严重退化 [think in space.pdf, p.7]。因此，问题所基于的“大幅提升”前提与论文实际结论相悖。",
+      "retrieval_metrics": {
+        "case_id": "golden_011",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 7,
+            "page_end": 7,
+            "expected_terms": [
+              "room size",
+              "8% to 21% decrease",
+              "unreliable",
+              "downright harmful"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_011",
+        "answerable": true,
+        "expectation": "corrective_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 7,
+            "page_end": 7,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.7]"
+            ],
+            "matched_chunk_ids": [
+              "ab7afc504277060318fc71f2"
+            ]
+          }
+        ],
+        "answer_terms_hit": true,
+        "missing_answer_terms": [],
+        "passed": true,
+        "failed_reasons": []
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [],
+        "answer": [],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_012",
+      "question": "根据论文对最佳模型 Gemini-1.5 Pro 的错误分析，在“视觉感知错误（Visual Perception Error）”这一类错误中，模型出错最多的 Top-3 问题类别分别是什么？",
+      "answerable": true,
+      "expectation": "direct_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "hit",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "e5244c7bbad5795554d31c31",
+        "c9b7e8352702dcb7288defce",
+        "58cba1f1d69b9af2aa2512e5"
+      ],
+      "retrieval_trace": {
+        "original_question": "根据论文对最佳模型 Gemini-1.5 Pro 的错误分析，在“视觉感知错误（Visual Perception Error）”这一类错误中，模型出错最多的 Top-3 问题类别分别是什么？",
+        "sparse_query": "Gemini-1.5 Pro error analysis Visual Perception Error top-3 question categories",
+        "vector_candidates": [
+          {
+            "chunk_id": "e5244c7bbad5795554d31c31",
+            "rank": 1,
+            "score": 0.581519603729248
+          },
+          {
+            "chunk_id": "489e52c52a6f2268ec25051f",
+            "rank": 2,
+            "score": 0.5677834749221802
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 3,
+            "score": 0.5645903944969177
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 4,
+            "score": 0.5632060170173645
+          },
+          {
+            "chunk_id": "f6ef78a58433e91803532deb",
+            "rank": 5,
+            "score": 0.556962251663208
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 6,
+            "score": 0.5503120422363281
+          },
+          {
+            "chunk_id": "0986c8a5b5a3ff817a73999d",
+            "rank": 7,
+            "score": 0.5305281281471252
+          },
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 8,
+            "score": 0.5290954113006592
+          },
+          {
+            "chunk_id": "9dfbd38ac056f5003b1ce729",
+            "rank": 9,
+            "score": 0.5202305912971497
+          },
+          {
+            "chunk_id": "214dd001c2c9bd0957f33901",
+            "rank": 10,
+            "score": 0.5190489292144775
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "e5244c7bbad5795554d31c31",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 2,
+            "score": 0.9359714384046611
+          },
+          {
+            "chunk_id": "f3fdcbb899aafce20b5749a5",
+            "rank": 3,
+            "score": 0.9023100679485727
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 4,
+            "score": 0.7920346815571062
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 5,
+            "score": 0.7442895271377085
+          },
+          {
+            "chunk_id": "7e55f01fd154b6ea648ce9ca",
+            "rank": 6,
+            "score": 0.6840307676534594
+          },
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 7,
+            "score": 0.6232912496683837
+          },
+          {
+            "chunk_id": "5b2d3fbefad1f5f4cec53b1f",
+            "rank": 8,
+            "score": 0.6201703295133096
+          },
+          {
+            "chunk_id": "de1a768bc831e8eb4a237a46",
+            "rank": 9,
+            "score": 0.5949857192472472
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 10,
+            "score": 0.5756845047227662
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "e5244c7bbad5795554d31c31",
+            "rank": 1,
+            "score": 0.03278688524590164
+          },
+          {
+            "chunk_id": "c9b7e8352702dcb7288defce",
+            "rank": 2,
+            "score": 0.031754032258064516
+          },
+          {
+            "chunk_id": "58cba1f1d69b9af2aa2512e5",
+            "rank": 3,
+            "score": 0.03125763125763126
+          },
+          {
+            "chunk_id": "bc7723dd06f0b40c64a5268f",
+            "rank": 4,
+            "score": 0.029631255487269532
+          },
+          {
+            "chunk_id": "b25340ae4756b4585c1cd916",
+            "rank": 5,
+            "score": 0.029437229437229435
+          },
+          {
+            "chunk_id": "489e52c52a6f2268ec25051f",
+            "rank": 6,
+            "score": 0.016129032258064516
+          },
+          {
+            "chunk_id": "f3fdcbb899aafce20b5749a5",
+            "rank": 7,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "820904dd7b757e81ed6fcc39",
+            "rank": 8,
+            "score": 0.015625
+          },
+          {
+            "chunk_id": "f6ef78a58433e91803532deb",
+            "rank": 9,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "7e55f01fd154b6ea648ce9ca",
+            "rank": 10,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "0986c8a5b5a3ff817a73999d",
+            "rank": 11,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "5b2d3fbefad1f5f4cec53b1f",
+            "rank": 12,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "9dfbd38ac056f5003b1ce729",
+            "rank": 13,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "de1a768bc831e8eb4a237a46",
+            "rank": 14,
+            "score": 0.014492753623188406
+          },
+          {
+            "chunk_id": "214dd001c2c9bd0957f33901",
+            "rank": 15,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [
+        "e5244c7bbad5795554d31c31",
+        "c9b7e8352702dcb7288defce",
+        "58cba1f1d69b9af2aa2512e5"
+      ],
+      "citation_labels": [
+        "[think in space.pdf, p.14]",
+        "[think in space.pdf, p.18]",
+        "[think in space.pdf, p.6]"
+      ],
+      "insufficient_evidence": false,
+      "answer_text": "根据提供的证据，论文对最佳模型 Gemini-1.5 Pro 的错误分析仅将错误分为四个大类（视觉感知错误、语言智能错误、关系推理错误、自我中心-非自我中心转换错误），并给出了各类错误的总体占比（如视觉感知错误等），但**并未进一步按具体问题类别（如物体计数、相对方向等）统计视觉感知错误内部的 Top-3 类别**。因此，无法从当前证据中得出所需排名。\n\n证据中相关部分指出：“To quantify and identify the main bottleneck for the best-performing MLLM on our benchmark, we analyze its errors on VSI-Bench (tiny), categorizing them into four distinct types... 1. Visual perception error... As shown in Fig. 7, around 71% of errors are attributed to spatial reasoning...” [think in space.pdf, p.6]。该分析只停留在四大错误类型层面，没有提供视觉感知错误下各问题类别的细分数据。",
+      "retrieval_metrics": {
+        "case_id": "golden_012",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 5,
+            "page_end": 6,
+            "expected_terms": [
+              "Visual perception error",
+              "misclassified object categories",
+              "Error Analysis"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "58cba1f1d69b9af2aa2512e5"
+            ],
+            "missing_terms": []
+          }
+        ],
+        "hit_at_k": true,
+        "missed_reasons": []
+      },
+      "answer_metrics": {
+        "case_id": "golden_012",
+        "answerable": true,
+        "expectation": "direct_answer",
+        "answer_generated": true,
+        "answered": true,
+        "refused": false,
+        "citation_present": true,
+        "citation_absent": false,
+        "citation_evidence_hit": true,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 5,
+            "page_end": 6,
+            "doc_hit": true,
+            "page_hit": true,
+            "hit": true,
+            "matched_citation_labels": [
+              "[think in space.pdf, p.6]"
+            ],
+            "matched_chunk_ids": [
+              "58cba1f1d69b9af2aa2512e5"
+            ]
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "object count",
+          "relative distance",
+          "appearance order"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "缺少答案词 object count, relative distance, appearance order"
+        ]
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [],
+        "answer": [
+          "缺少答案词 object count, relative distance, appearance order"
+        ],
+        "judge": []
+      }
+    },
+    {
+      "id": "golden_cross_001",
+      "question": "VSI-Bench的问答对是否覆盖了空间智能中的基础感知任务的主要维度？",
+      "answerable": true,
+      "expectation": "direct_answer",
+      "status": "ok",
+      "error": null,
+      "retrieval_state": "miss",
+      "answer_state": "fail",
+      "retrieved_chunk_ids": [
+        "b765aadcb90fcadfee64a469",
+        "7d0bda05c310e1f1755e6dc6",
+        "8cc5a1af395859b0182e6c91"
+      ],
+      "retrieval_trace": {
+        "original_question": "VSI-Bench的问答对是否覆盖了空间智能中的基础感知任务的主要维度？",
+        "sparse_query": "VSI-Bench question-answer pairs spatial intelligence basic perception tasks main dimensions",
+        "vector_candidates": [
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 1,
+            "score": 0.6350975036621094
+          },
+          {
+            "chunk_id": "6ed7be2f2e8cf7a08f0b4523",
+            "rank": 2,
+            "score": 0.6295223236083984
+          },
+          {
+            "chunk_id": "bac5da81e48b88d15799f67c",
+            "rank": 3,
+            "score": 0.6113687753677368
+          },
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 4,
+            "score": 0.6106465458869934
+          },
+          {
+            "chunk_id": "8cc5a1af395859b0182e6c91",
+            "rank": 5,
+            "score": 0.6074318289756775
+          },
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 6,
+            "score": 0.6068335175514221
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 7,
+            "score": 0.5870968699455261
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 8,
+            "score": 0.5794015526771545
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 9,
+            "score": 0.5792014598846436
+          },
+          {
+            "chunk_id": "472e0b6f80f0df6735a24c2a",
+            "rank": 10,
+            "score": 0.5756782293319702
+          }
+        ],
+        "bm25_candidates": [
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 1,
+            "score": 1.0
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 2,
+            "score": 0.8057010251577532
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 3,
+            "score": 0.6978815589438254
+          },
+          {
+            "chunk_id": "8cc5a1af395859b0182e6c91",
+            "rank": 4,
+            "score": 0.6030978914229452
+          },
+          {
+            "chunk_id": "d48818962bf3721341320988",
+            "rank": 5,
+            "score": 0.5958759512525444
+          },
+          {
+            "chunk_id": "56c90f38eed4154f9fee7854",
+            "rank": 6,
+            "score": 0.5795718479852049
+          },
+          {
+            "chunk_id": "e8b0f908af25fbe9274101cc",
+            "rank": 7,
+            "score": 0.5621160992152536
+          },
+          {
+            "chunk_id": "6ed7be2f2e8cf7a08f0b4523",
+            "rank": 8,
+            "score": 0.5183609391861366
+          },
+          {
+            "chunk_id": "472e0b6f80f0df6735a24c2a",
+            "rank": 9,
+            "score": 0.5174782035010473
+          },
+          {
+            "chunk_id": "6e76194d4d3df56473e1f724",
+            "rank": 10,
+            "score": 0.5080917070077203
+          }
+        ],
+        "fused_candidates": [
+          {
+            "chunk_id": "b765aadcb90fcadfee64a469",
+            "rank": 1,
+            "score": 0.032018442622950824
+          },
+          {
+            "chunk_id": "7d0bda05c310e1f1755e6dc6",
+            "rank": 2,
+            "score": 0.031054405392392875
+          },
+          {
+            "chunk_id": "8cc5a1af395859b0182e6c91",
+            "rank": 3,
+            "score": 0.031009615384615385
+          },
+          {
+            "chunk_id": "6ed7be2f2e8cf7a08f0b4523",
+            "rank": 4,
+            "score": 0.030834914611005692
+          },
+          {
+            "chunk_id": "48e0918ffbe1e2218086d35d",
+            "rank": 5,
+            "score": 0.03036576949620428
+          },
+          {
+            "chunk_id": "472e0b6f80f0df6735a24c2a",
+            "rank": 6,
+            "score": 0.02877846790890269
+          },
+          {
+            "chunk_id": "fd518e0bbf42e9c18bbacb69",
+            "rank": 7,
+            "score": 0.01639344262295082
+          },
+          {
+            "chunk_id": "bac5da81e48b88d15799f67c",
+            "rank": 8,
+            "score": 0.015873015873015872
+          },
+          {
+            "chunk_id": "d48818962bf3721341320988",
+            "rank": 9,
+            "score": 0.015384615384615385
+          },
+          {
+            "chunk_id": "56c90f38eed4154f9fee7854",
+            "rank": 10,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "e5e5b4ceeabe6828ded3a1da",
+            "rank": 11,
+            "score": 0.015151515151515152
+          },
+          {
+            "chunk_id": "e8b0f908af25fbe9274101cc",
+            "rank": 12,
+            "score": 0.014925373134328358
+          },
+          {
+            "chunk_id": "cd28d3c408024ef378fa5816",
+            "rank": 13,
+            "score": 0.014705882352941176
+          },
+          {
+            "chunk_id": "6e76194d4d3df56473e1f724",
+            "rank": 14,
+            "score": 0.014285714285714285
+          }
+        ]
+      },
+      "used_chunk_ids": [],
+      "citation_labels": [],
+      "insufficient_evidence": true,
+      "answer_text": "不足以回答：当前检索到的证据不足以支持可靠答案。",
+      "retrieval_metrics": {
+        "case_id": "golden_cross_001",
+        "answerable": true,
+        "expectation": "must_hit",
+        "top_k": 3,
+        "retrieved_count": 3,
+        "evidence_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 4,
+            "expected_terms": [
+              "object count",
+              "measurement estimation"
+            ],
+            "doc_hit": true,
+            "page_hit": true,
+            "terms_hit": true,
+            "hit": true,
+            "matched_chunk_ids": [
+              "7d0bda05c310e1f1755e6dc6"
+            ],
+            "missing_terms": []
+          },
+          {
+            "doc_key": "SIBE-LM",
+            "page_start": 6,
+            "page_end": 7,
+            "expected_terms": [
+              "basic perception",
+              "Attributes",
+              "States",
+              "shape, color, size"
+            ],
+            "doc_hit": true,
+            "page_hit": false,
+            "terms_hit": false,
+            "hit": false,
+            "matched_chunk_ids": [],
+            "missing_terms": [
+              "basic perception",
+              "Attributes",
+              "States",
+              "shape, color, size"
+            ]
+          }
+        ],
+        "hit_at_k": false,
+        "missed_reasons": [
+          "SIBE-LM pp.6-7: 未命中页码范围"
+        ]
+      },
+      "answer_metrics": {
+        "case_id": "golden_cross_001",
+        "answerable": true,
+        "expectation": "direct_answer",
+        "answer_generated": true,
+        "answered": false,
+        "refused": true,
+        "citation_present": false,
+        "citation_absent": true,
+        "citation_evidence_hit": false,
+        "citation_matches": [
+          {
+            "doc_key": "think_in_space",
+            "page_start": 3,
+            "page_end": 4,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          },
+          {
+            "doc_key": "SIBE-LM",
+            "page_start": 6,
+            "page_end": 7,
+            "doc_hit": false,
+            "page_hit": false,
+            "hit": false,
+            "matched_citation_labels": [],
+            "matched_chunk_ids": []
+          }
+        ],
+        "answer_terms_hit": false,
+        "missing_answer_terms": [
+          "configurational tasks",
+          "物体计数",
+          "属性",
+          "状态",
+          "颜色",
+          "形状"
+        ],
+        "passed": false,
+        "failed_reasons": [
+          "需要证据作答的问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 configurational tasks, 物体计数, 属性, 状态, 颜色, 形状",
+          "think_in_space pp.3-4: citation 未命中文档",
+          "SIBE-LM pp.6-7: citation 未命中文档"
+        ]
+      },
+      "judge_metrics": null,
+      "failures": {
+        "retrieval": [
+          "SIBE-LM pp.6-7: 未命中页码范围"
+        ],
+        "answer": [
+          "需要证据作答的问题被拒答或答案为空",
+          "缺少 citation",
+          "缺少答案词 configurational tasks, 物体计数, 属性, 状态, 颜色, 形状",
+          "think_in_space pp.3-4: citation 未命中文档",
+          "SIBE-LM pp.6-7: citation 未命中文档"
+        ],
+        "judge": []
+      }
+    }
+  ]
+}

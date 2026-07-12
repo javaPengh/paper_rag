@@ -5,12 +5,12 @@
 
 from pathlib import Path
 
-from paper_rag.qa import ExtractiveAnswerGenerator, format_answer
 from paper_rag.prompts.answer import (
     ANSWER_PROMPT_VERSION,
     build_answer_system_prompt,
     build_answer_user_prompt,
 )
+from paper_rag.qa import ExtractiveAnswerGenerator, format_answer
 from paper_rag.schemas import Chunk, Document, SearchResult
 
 
